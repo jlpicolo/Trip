@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Japan Trip
 
-## Getting Started
+Application web collaborative (PWA, offline-first) de préparation et de suivi de voyage pour un
+groupe de voyageurs aux droits égaux. Premier voyage : Japon, 9–30 mars 2027, 4 voyageurs.
+Le nom, les dates, destinations et devises sont des réglages du voyage : l'application est réutilisable.
 
-First, run the development server:
+**État : phase 1 (architecture) terminée — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).**
+
+## Stack
+
+Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · Supabase (Postgres + RLS, Auth, Storage)
+· Dexie/IndexedDB · Serwist (Service Worker) · MapLibre GL + PMTiles (OpenStreetMap)
+
+## Démarrage local
 
 ```bash
+npm install
+cp .env.example .env.local   # puis compléter
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Base de données
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Le schéma est dans `supabase/migrations/`. Pour l'appliquer à un projet Supabase :
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx supabase link --project-ref <ref>
+npx supabase db push
+```
 
-## Learn More
+### Tests SQL (RLS, Storage, synchronisation)
 
-To learn more about Next.js, take a look at the following resources:
+`scripts/test-db.sh` crée une base PostgreSQL jetable, y installe un stub minimal des schémas
+`auth`/`storage` de Supabase (`supabase/tests/00_supabase_stub.sql`), applique les migrations et
+exécute les assertions de `supabase/tests/*.test.sql`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+PGHOST=localhost PGUSER=postgres npm run test:db
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Le stub ne remplace pas un test sur un vrai projet Supabase : il sera complété par des tests
+d'intégration contre `supabase start` (Docker) en CI.

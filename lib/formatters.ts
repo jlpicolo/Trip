@@ -52,6 +52,24 @@ export function formatRelative(isoDateTime: string, now: Date = new Date()): str
 }
 
 export function formatMoney(minor: number, currency: string): string {
-  const digits = new Intl.NumberFormat("fr-FR", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
-  return new Intl.NumberFormat("fr-FR", { style: "currency", currency }).format(minor / 10 ** digits);
+  // « narrowSymbol » : ¥ et € plutôt que « JPY » / « EUR » (affichage par défaut en français pour le yen).
+  const fmt = new Intl.NumberFormat("fr-FR", { style: "currency", currency, currencyDisplay: "narrowSymbol" });
+  const digits = fmt.resolvedOptions().maximumFractionDigits ?? 2;
+  return fmt.format(minor / 10 ** digits);
+}
+
+/** « sam. 14 mars » */
+export const formatDayShort = (iso: string) => formatDate(iso, { weekday: "short", day: "numeric", month: "short" });
+
+/** « Samedi 14 mars » */
+export function formatDayLong(iso: string): string {
+  const s = formatDate(iso, { weekday: "long", day: "numeric", month: "long" });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function formatMinutes(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h} h ${String(m).padStart(2, "0")}` : `${h} h`;
 }

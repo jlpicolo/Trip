@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 2 (fondations) terminée**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 3a (planning) terminée**. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 9 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -256,7 +256,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 |---|---|---|
 | **1. Analyse** ✅ | inspection, architecture, schéma SQL + RLS + RPC de synchro, tests SQL | migration appliquée sur le projet Supabase réel ; 52 assertions vertes en local **et** sur Supabase |
 | **2. Fondations** ✅ | dépendances, client Supabase, auth (inscription, connexion, déconnexion, mot de passe oublié), profil (pseudo, couleur, avatar), création de groupe + voyage, invitations, design system (sombre/clair), navigation mobile, gestion d'erreurs, couche Dexie + moteur de synchro (base nécessaire à toutes les sections) | 4 comptes réels sur un projet Supabase de test, même voyage visible sur 2 navigateurs, build OK |
-| **3a. Planning** | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
+| **3a. Planning** ✅ | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
 | **3b. Carte** | MapLibre + PMTiles en ligne, catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
 | **3c. Transports & documents** | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
 | **3d. Hébergements** | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
@@ -347,7 +347,45 @@ mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonn
 - `next.config.ts` : la règle Turbopack `@tailwindcss/turbopack` est **indispensable** (sans elle,
   Tailwind n'est pas compilé). `cacheComponents` et `partialPrefetching` sont conservés.
 
-## 10. Décisions prises (détails secondaires)
+## 10. Réalisé en phase 3a — Planning
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Ordre, placement chronologique, regroupement par jour, liens Maps | `lib/planning.ts` | tests unitaires |
+| Écritures (créer, modifier, déplacer, réordonner, fait, supprimer, notes du jour) | `lib/db/planning.ts` | tests unitaires avec faux serveur |
+| Validation d'une activité (horaires, date dans le voyage, lien, budget, GPS) | `lib/validation/activity.ts`, `lib/money.ts`, `lib/geo.ts` | tests unitaires |
+| Chronologie, calendrier, idées, glisser-déposer, formulaires | `app/(app)/planning`, `components/features/planning/*` | E2E `planning.e2e.mjs` (14 étapes, 2 voyageurs, hors ligne) |
+| Planification de la synchro | `lib/sync/scheduler.ts`, `components/app/AutoSync.tsx` | tests unitaires (minuteries simulées) + E2E |
+
+### Décisions de la phase 3a
+
+- **Ordre fractionnaire** (`sort_key`) : déplacer une activité ne réécrit qu'une ligne (moins de conflits
+  entre voyageurs). Si l'écart entre deux clés est épuisé, la journée est renumérotée (rare, testé).
+- **Horaires** : saisir ou modifier une heure range l'activité chronologiquement ; les activités sans
+  horaire gardent leur place ; le glisser-déposer reste libre ensuite.
+- **Idées** : `date = null`. Déplacer vers les idées retire l'horaire (un horaire exige une date).
+- **Lieu d'une activité** : adresse et coordonnées (saisies, ou extraites d'un lien Google Maps) créent ou
+  mettent à jour un enregistrement `places` lié — c'est lui qu'utilisera la carte (phase 3b). Retirer le lieu
+  d'une activité ne supprime pas le lieu.
+- **Temps de trajet** : saisie manuelle uniquement, toujours affichée « ≈ … · estimation ». Itinéraires :
+  liens externes Google Maps / Plans d'Apple.
+- **Glisser-déposer** : `@dnd-kit` (souris, appui long au toucher pour ne pas gêner le défilement, clavier
+  avec annonces lecteur d'écran). Déplacement entre journées par le champ « Journée » du formulaire.
+- **Préférence d'affichage** (chronologie / calendrier) : propre à l'appareil (`localStorage`).
+
+### Bugs trouvés par les tests de bout en bout et corrigés
+
+1. **Modifications bloquées** : une saisie faite *pendant* une synchronisation n'était envoyée qu'au
+   prochain retour au premier plan. → `createSyncScheduler` reprogramme tant qu'il reste des modifications
+   en attente (délai croissant en cas d'erreur serveur, aucune tentative hors ligne).
+2. **Appareil neuf** : la première synchro partait avant le choix du voyage actif → planning vide.
+   → le voyage actif est déterminé dès que la liste des voyages est connue, et la synchro est relancée
+   quand il change.
+3. **Tiroir mal positionné** : rendu dans un parent animé (`transform`), il suivait le défilement de la page.
+   → rendu via portail dans `<body>` ; les animations d'apparition ne laissent plus de `transform` actif.
+4. Débordement horizontal à 390 px (sélecteur de vue) ; symbole « ¥ » au lieu de « JPY ».
+
+## 11. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

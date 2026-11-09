@@ -157,6 +157,8 @@ try {
     await alice.getByRole("heading", { name: "Japon 2027" }).waitFor({ timeout: 20_000 });
     await alice.getByText("Bruno a modifié le voyage.").waitFor({ timeout: 20_000 });
     await alice.getByText("Vous avez ajouté le voyage.").waitFor();
+    const { sw, iw } = await alice.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
+    assert.ok(sw <= iw, `débordement horizontal de l'accueil : ${sw} > ${iw}`);
     await alice.screenshot({ path: `${SHOTS}/06-accueil-alice.png`, fullPage: true });
   });
 

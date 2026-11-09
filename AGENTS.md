@@ -51,9 +51,13 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - Argent : entiers en unités mineures ; formatage via `lib/formatters.ts` (`Intl.NumberFormat`).
 - Composants UI dans `components/ui/*`, sobres ; icônes en SVG inline (pas de bibliothèque d'icônes),
   animations en CSS uniquement.
-- Un seul Drawer par page, contrôlé par état.
+- Un seul Drawer par page, contrôlé par état. Le Drawer est rendu par portail dans `<body>` : ne pas
+  revenir à un rendu en place (un ancêtre avec `transform` casse `position: fixed`).
+- Animations CSS d'apparition en `animation-fill-mode: backwards` (jamais `both`/`forwards` avec transform).
 - Champs numériques : `inputMode="decimal"` + saisie tamponnée (validation au blur).
 - `AGENTS.md` et `docs/ARCHITECTURE.md` sont mis à jour en même temps que le code, phase par phase.
+- La synchro automatique passe par `createSyncScheduler` (`lib/sync/scheduler.ts`) : ne pas réintroduire
+  de déclencheurs ad hoc.
 - Toute écriture de données de voyage passe par `getEngine().insert/update/remove` (jamais d'écriture
   directe dans Supabase ni dans Dexie depuis un composant).
 - Les listes affichées filtrent `deleted_at` (suppressions logiques conservées localement).
@@ -63,7 +67,8 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs, hors ligne / retour réseau (app démarrée sur :3000).
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning), hors ligne / retour réseau,
+  absence de débordement horizontal (app démarrée sur :3000). Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).
 - `npm run test:db:remote` : mêmes tests sur le projet Supabase réel (nettoyage automatique).

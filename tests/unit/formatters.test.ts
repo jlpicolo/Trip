@@ -40,7 +40,7 @@ describe("dates du voyage", () => {
 describe("montants", () => {
   it("unités mineures selon la devise (JPY sans décimale)", () => {
     expect(formatMoney(123456, "EUR").replace(/\s/g, " ")).toBe("1 234,56 €");
-    expect(formatMoney(3000, "JPY").replace(/\s/g, " ")).toMatch(/3 000\s?(¥|JPY|￥)/);
+    expect(formatMoney(3000, "JPY").replace(/\s/g, " ")).toBe("3 000 ¥");
   });
 });
 

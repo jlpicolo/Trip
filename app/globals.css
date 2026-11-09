@@ -168,12 +168,14 @@ button:not(:disabled),
   }
 }
 
+/* « backwards » et non « both » : une animation terminée ne doit laisser aucun transform
+   actif, sinon l'élément devient le repère des descendants en position: fixed. */
 .animate-fade-up {
-  animation: fade-up 0.22s ease-out both;
+  animation: fade-up 0.22s ease-out backwards;
 }
 
 .animate-sheet-up {
-  animation: sheet-up 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation: sheet-up 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
 }
 
 .animate-spin-slow {

@@ -13,7 +13,8 @@
     "test": "vitest run --config vitest.config.mts",
     "test:integration": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 vitest run --config vitest.integration.config.mts",
     "test:e2e": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 node tests/e2e/collaboration.e2e.mjs",
-    "db:push:remote": "bash scripts/db-push-remote.sh"
+    "db:push:remote": "bash scripts/db-push-remote.sh",
+    "travelers": "node scripts/travelers.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

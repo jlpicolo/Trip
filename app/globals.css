@@ -69,6 +69,18 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
+/* Un élément focalisé ou atteint par défilement ne doit jamais finir sous l'en-tête ou la barre du bas. */
+html {
+  scroll-padding-top: calc(64px + env(safe-area-inset-top));
+  scroll-padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  html {
+    scroll-padding-bottom: 24px;
+  }
+}
+
 html,
 body {
   background: var(--bg-base);

@@ -40,12 +40,9 @@ function LoginForm() {
       <Field label="Email" name="email" type="email" autoComplete="email" inputMode="email" required error={errors.email} />
       <Field label="Mot de passe" name="password" type="password" autoComplete="current-password" required error={errors.password} />
       <Button type="submit" loading={loading} block>Se connecter</Button>
-      <div className="flex flex-col gap-2 text-center text-sm">
-        <Link href="/mot-de-passe-oublie" className="text-dim underline-offset-4 hover:underline">Mot de passe oublié ?</Link>
-        <p className="text-dim">
-          Pas encore de compte ?{" "}
-          <Link href={`/inscription?next=${encodeURIComponent(next)}`} className="font-semibold text-sakura">Créer un compte</Link>
-        </p>
+      <div className="flex flex-col gap-2 text-center text-sm text-dim">
+        <p>Votre identifiant et votre mot de passe vous sont transmis par l&apos;organisateur du voyage.</p>
+        <Link href="/mot-de-passe-oublie" className="underline-offset-4 hover:underline">Mot de passe oublié ?</Link>
       </div>
     </form>
   );

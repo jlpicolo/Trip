@@ -6,12 +6,6 @@ const currency = z.string().regex(/^[A-Z]{3}$/, "Code devise sur 3 lettres (ex. 
 export const emailSchema = z.string().trim().toLowerCase().email("Adresse email invalide");
 export const passwordSchema = z.string().min(10, "10 caractères minimum").max(72, "72 caractères maximum");
 
-export const signUpSchema = z.object({
-  displayName: z.string().trim().min(1, "Indiquez un prénom ou pseudo").max(60),
-  email: emailSchema,
-  password: passwordSchema,
-});
-
 export const signInSchema = z.object({ email: emailSchema, password: z.string().min(1, "Mot de passe requis") });
 
 export const profileSchema = z.object({

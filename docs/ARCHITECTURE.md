@@ -177,7 +177,7 @@ Aucun voyageur n'a de privilège supplémentaire.
 | Recherche de lieux | **Nominatim** (OSM) | non | gratuit, 1 req/s max, pas d'autocomplétion → recherche sur validation. Les adresses japonaises sont mal couvertes : saisie manuelle des coordonnées / collage d'un lien Google Maps en secours |
 | Itinéraires | **Liens externes** Google Maps / Apple Maps | non | pas d'API de calcul d'itinéraire : on n'invente pas de temps de trajet |
 | Taux EUR/JPY | **Frankfurter** (données BCE) | non | gratuit, sans clé. **Taux de référence quotidien** (jours ouvrés), affiché avec sa date : jamais présenté comme « temps réel ». Taux manuel possible |
-| Emails (auth, invitations) | SMTP Supabase intégré, puis SMTP perso (Resend, Brevo…) | oui (serveur) | le SMTP par défaut de Supabase est limité à quelques emails/heure : suffisant à 4, mais un SMTP dédié est conseillé |
+| Emails | **Aucun** (décision des voyageurs) | — | comptes et mots de passe transmis par l'organisateur ; un SMTP (Brevo, Resend…) pourra être ajouté plus tard |
 | Réservations (Booking, Airbnb…) | **Aucune intégration** | — | pas d'API officielle ouverte : liens externes + import PDF/captures |
 
 ## 4. Coûts estimés (à vérifier au moment de souscrire, les offres évoluent)
@@ -323,9 +323,12 @@ mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonn
 
 ### Décisions de la phase 2
 
-- **Invitations par lien à partager** (copie / partage natif), créées par la RPC `create_invitation` sous
-  RLS. L'application n'utilise **jamais** la clé secrète Supabase. L'envoi d'email d'invitation viendra
-  avec un SMTP dédié (le SMTP intégré de Supabase n'envoie qu'aux membres de l'organisation Supabase).
+- **Comptes créés par le propriétaire du service** (choix des voyageurs, novembre 2026) : inscription
+  publique désactivée dans Supabase, aucun email envoyé. Création, réinitialisation de mot de passe et
+  ajout au groupe via `scripts/travelers.mjs` (clé secrète, ordinateur du propriétaire uniquement).
+  Chaque voyageur change son mot de passe dans l'app. Voir [DEPLOIEMENT.md](./DEPLOIEMENT.md).
+- **Invitations par lien** (copie / partage natif) conservées pour ajouter un compte existant à un
+  groupe depuis l'app (RPC `create_invitation` sous RLS). L'application n'utilise **jamais** la clé secrète.
 - **Appareil neuf** : tant que la liste des voyages n'a jamais été chargée depuis le serveur
   (`meta.directoryLoadedAt`), l'app ne propose pas de créer un voyage (évite les doublons) ; hors ligne,
   elle explique qu'une première connexion est nécessaire.

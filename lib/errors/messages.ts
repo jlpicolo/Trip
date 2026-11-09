@@ -9,6 +9,7 @@ const AUTH: Record<string, string> = {
   over_request_rate_limit: "Trop de tentatives. Patientez quelques minutes.",
   same_password: "Le nouveau mot de passe doit être différent de l'ancien.",
   session_not_found: "Session expirée : reconnectez-vous.",
+  signup_disabled: "Les comptes sont créés par l'organisateur du voyage.",
 };
 
 const DB: Record<string, string> = {

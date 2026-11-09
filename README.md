@@ -11,6 +11,11 @@ Le nom, les dates, destinations et devises sont des réglages du voyage : l'appl
 Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · Supabase (Postgres + RLS, Auth, Storage)
 · Dexie/IndexedDB · Service Worker manuel · MapLibre GL + PMTiles (OpenStreetMap)
 
+## Production
+
+https://trip-teal-three.vercel.app — déploiement, variables Vercel et gestion des comptes :
+[docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).
+
 ## Démarrage local
 
 ```bash

@@ -75,6 +75,7 @@ try {
   await step("une page protégée redirige vers la connexion", async () => {
     await alice.goto(`${BASE}/accueil`);
     await alice.waitForURL(/\/connexion\?next=%2Faccueil/);
+    assert.equal(await alice.getByRole("link", { name: /Créer un compte/ }).count(), 0, "pas d'inscription publique");
     await alice.screenshot({ path: `${SHOTS}/01-connexion.png` });
   });
 
@@ -115,7 +116,7 @@ try {
 
   await step("Bruno ouvre le lien, se connecte et rejoint le voyage", async () => {
     await bruno.goto(link);
-    await bruno.getByRole("link", { name: "J'ai déjà un compte" }).click();
+    await bruno.getByRole("link", { name: "Se connecter" }).click();
     await login(bruno, people.bruno);
     await bruno.waitForURL(/\/invitation\?token=/);
     await bruno.getByRole("button", { name: "Rejoindre" }).click();
@@ -180,6 +181,17 @@ try {
     await desk.close();
   });
 
+  await step("Bruno change lui-même son mot de passe", async () => {
+    await bruno.goto(`${BASE}/parametres`);
+    await bruno.getByRole("link", { name: "Changer de mot de passe" }).click();
+    await bruno.waitForURL(/\/nouveau-mot-de-passe/);
+    people.bruno.password = `Nouveau-${run}-mdp`;
+    await bruno.getByLabel("Nouveau mot de passe").fill(people.bruno.password);
+    await bruno.getByLabel("Confirmation").fill(people.bruno.password);
+    await bruno.getByRole("button", { name: "Enregistrer" }).click();
+    await bruno.waitForURL(/\/accueil/);
+  });
+
   await step("déconnexion : données locales effacées de l'appareil", async () => {
     await bruno.goto(`${BASE}/parametres`);
     await bruno.getByRole("button", { name: "Se déconnecter" }).click();
@@ -192,6 +204,13 @@ try {
       return count;
     });
     assert.equal(left, 0, `${left} voyage(s) encore présent(s) en local après déconnexion`);
+  });
+
+  await step("Bruno se reconnecte avec son nouveau mot de passe et retrouve le voyage", async () => {
+    await bruno.goto(`${BASE}/connexion`);
+    await login(bruno, people.bruno);
+    await bruno.waitForURL(/\/accueil/);
+    await bruno.getByRole("heading", { name: "Japon 2027" }).waitFor({ timeout: 20_000 });
   });
 
   console.log(`\n${results.length} étapes OK`);

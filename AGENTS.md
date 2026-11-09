@@ -68,3 +68,8 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).
 - `npm run test:db:remote` : mêmes tests sur le projet Supabase réel (nettoyage automatique).
 - `npm run build`, `npm run lint`, `npm run typecheck` avant chaque commit.
+
+## Exploitation
+
+- Inscription publique désactivée : comptes gérés par `npm run travelers` (voir `docs/DEPLOIEMENT.md`).
+- Ne jamais ajouter `SUPABASE_SECRET_KEY` aux variables Vercel ni l'utiliser dans `app/` ou `components/`.

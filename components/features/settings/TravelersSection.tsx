@@ -103,7 +103,7 @@ export function TravelersSection({ groupId, userId }: { groupId: string; userId:
       <form onSubmit={invite} className="flex flex-col gap-3" noValidate>
         <FormError message={error} />
         <Field label="Inviter un voyageur (email)" type="email" inputMode="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} hint="Le lien ne fonctionnera que pour un compte créé avec cette adresse." />
+          onChange={(e) => setEmail(e.target.value)} hint="Le voyageur doit déjà avoir un compte avec cette adresse (créé par l'organisateur)." />
         <Button type="submit" variant="subtle" icon="plus" loading={loading}>Créer le lien d&apos;invitation</Button>
       </form>
 

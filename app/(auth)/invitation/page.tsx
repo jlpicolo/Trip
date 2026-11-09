@@ -32,10 +32,9 @@ function Invitation() {
       <Card className="flex flex-col gap-3">
         <h1 className="text-xl font-bold">Vous êtes invité à un voyage</h1>
         <p className="text-sm text-dim">
-          Créez votre compte avec l&apos;adresse email à laquelle l&apos;invitation est destinée, ou connectez-vous si vous en avez déjà un.
+          Connectez-vous avec le compte que l&apos;organisateur vous a transmis (même adresse email que l&apos;invitation).
         </p>
-        <ButtonLink href={`/inscription?next=${encodeURIComponent(here)}`} block>Créer mon compte</ButtonLink>
-        <ButtonLink href={`/connexion?next=${encodeURIComponent(here)}`} variant="ghost" block>J&apos;ai déjà un compte</ButtonLink>
+        <ButtonLink href={`/connexion?next=${encodeURIComponent(here)}`} block>Se connecter</ButtonLink>
       </Card>
     );
   }

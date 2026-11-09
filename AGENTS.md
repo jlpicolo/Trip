@@ -54,9 +54,17 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - Un seul Drawer par page, contrôlé par état.
 - Champs numériques : `inputMode="decimal"` + saisie tamponnée (validation au blur).
 - `AGENTS.md` et `docs/ARCHITECTURE.md` sont mis à jour en même temps que le code, phase par phase.
+- Toute écriture de données de voyage passe par `getEngine().insert/update/remove` (jamais d'écriture
+  directe dans Supabase ni dans Dexie depuis un composant).
+- Les listes affichées filtrent `deleted_at` (suppressions logiques conservées localement).
+- Ne jamais retirer la règle `turbopack.rules["*.css"]` de `next.config.ts` (compilation Tailwind).
 
 ## Tests
 
+- `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
+- `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
+- `npm run test:e2e` : Chromium, 2 voyageurs, hors ligne / retour réseau (app démarrée sur :3000).
+- `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).
 - `npm run test:db:remote` : mêmes tests sur le projet Supabase réel (nettoyage automatique).
 - `npm run build`, `npm run lint`, `npm run typecheck` avant chaque commit.

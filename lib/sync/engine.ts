@@ -26,6 +26,9 @@ export interface SyncStatus {
 }
 
 const BATCH = 100;
+
+/** Tant que cette clé est absente, l'appareil ignore encore quels voyages existent. */
+export const DIRECTORY_LOADED_KEY = "directoryLoadedAt";
 const stripServer = (data: RowData) => omit(data, [...SERVER_COLUMNS, "id"]);
 
 /**
@@ -45,6 +48,7 @@ export class SyncEngine {
   };
   private inFlight = new Set<string>();
   private running: Promise<void> | null = null;
+  private paused = false;
 
   constructor(
     readonly db: LocalDb,
@@ -151,8 +155,22 @@ export class SyncEngine {
 
   // ---------------------------------------------------------------- synchronisation
 
+  /**
+   * Suspend toute synchronisation et attend la fin de celle en cours : indispensable
+   * avant d'effacer la base locale, sinon une réponse tardive y réécrirait des données.
+   */
+  async pause(): Promise<void> {
+    this.paused = true;
+    await this.running?.catch(() => undefined);
+  }
+
+  resume(): void {
+    this.paused = false;
+  }
+
   /** Envoie la file puis récupère les changements. Appels concurrents fusionnés. */
   sync(tripId: string | null): Promise<void> {
+    if (this.paused) return Promise.resolve();
     this.running ??= this.runSync(tripId).finally(() => {
       this.running = null;
     });
@@ -380,8 +398,11 @@ export class SyncEngine {
 
   // ---------------------------------------------------------------- annuaire
 
+  /** Met à jour voyages, membres et profils. Marque l'annuaire comme chargé au moins une fois. */
   async refreshDirectory(): Promise<void> {
+    if (this.paused) return;
     const trips = await this.remote.listTrips();
+    if (this.paused) return;
     const groups = [...new Set(trips.map((t) => t.group_id))];
     for (const trip of trips) await this.applyServerRow("trips", trip);
     for (const g of groups) {
@@ -392,5 +413,6 @@ export class SyncEngine {
         await this.db.profiles.bulkPut(profiles);
       });
     }
+    await this.db.setMeta(DIRECTORY_LOADED_KEY, this.now().toISOString());
   }
 }

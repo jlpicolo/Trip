@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 1 (analyse et architecture)**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 2 (fondations) terminée**. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 9 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -255,7 +255,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | Phase | Contenu | Critère de fin (testé) |
 |---|---|---|
 | **1. Analyse** ✅ | inspection, architecture, schéma SQL + RLS + RPC de synchro, tests SQL | migration appliquée sur le projet Supabase réel ; 52 assertions vertes en local **et** sur Supabase |
-| **2. Fondations** | dépendances, client Supabase, auth (inscription, connexion, déconnexion, mot de passe oublié), profil (pseudo, couleur, avatar), création de groupe + voyage, invitations, design system (sombre/clair), navigation mobile, gestion d'erreurs, couche Dexie + moteur de synchro (base nécessaire à toutes les sections) | 4 comptes réels sur un projet Supabase de test, même voyage visible sur 2 navigateurs, build OK |
+| **2. Fondations** ✅ | dépendances, client Supabase, auth (inscription, connexion, déconnexion, mot de passe oublié), profil (pseudo, couleur, avatar), création de groupe + voyage, invitations, design system (sombre/clair), navigation mobile, gestion d'erreurs, couche Dexie + moteur de synchro (base nécessaire à toutes les sections) | 4 comptes réels sur un projet Supabase de test, même voyage visible sur 2 navigateurs, build OK |
 | **3a. Planning** | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
 | **3b. Carte** | MapLibre + PMTiles en ligne, catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
 | **3c. Transports & documents** | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
@@ -307,7 +307,41 @@ Mise en page héritée de One for All : cartes arrondies 12–16 px, bord subtil
 `-webkit-tap-highlight-color: transparent`. Adaptation Japan Trip : colonne de 440 px sur mobile, mais
 mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonnes), et thème clair.
 
-## 9. Décisions prises (détails secondaires)
+## 9. Réalisé en phase 2
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Base locale IndexedDB | `lib/db/schema.ts` | tests unitaires (fake-indexeddb) |
+| Moteur de synchronisation | `lib/sync/engine.ts`, `merge.ts`, `remote.ts`, `client.ts` | 21 tests unitaires + 6 tests d'intégration sur Supabase réel |
+| Synchro automatique | `components/app/AutoSync.tsx` | E2E (retour du réseau) |
+| Authentification | `app/(auth)/*`, `app/auth/callback/route.ts`, `proxy.ts`, `hooks/useSession.tsx` | E2E (redirection, erreur, connexion, déconnexion) |
+| Groupe, voyage, invitations | `app/(app)/bienvenue`, `components/features/settings/TravelersSection.tsx`, `app/(auth)/invitation` | E2E (Alice crée, Bruno rejoint) |
+| Profil (pseudo, couleur) | `components/features/settings/ProfileSection.tsx`, migration `member_colors` | test SQL + E2E (couleurs distinctes) |
+| Tableau de bord | `app/(app)/accueil`, `lib/db/dashboard.ts`, `lib/activity.ts` | E2E + tests unitaires (phrases, dates) |
+| Conflits et refus | `app/(app)/synchronisation` | tests unitaires du moteur |
+| Design system, thèmes, navigation | `components/ui/*`, `components/app/*`, `app/globals.css`, `lib/theme.ts` | E2E (mobile 390 px, ordinateur 1280 px, thème clair) |
+
+### Décisions de la phase 2
+
+- **Invitations par lien à partager** (copie / partage natif), créées par la RPC `create_invitation` sous
+  RLS. L'application n'utilise **jamais** la clé secrète Supabase. L'envoi d'email d'invitation viendra
+  avec un SMTP dédié (le SMTP intégré de Supabase n'envoie qu'aux membres de l'organisation Supabase).
+- **Appareil neuf** : tant que la liste des voyages n'a jamais été chargée depuis le serveur
+  (`meta.directoryLoadedAt`), l'app ne propose pas de créer un voyage (évite les doublons) ; hors ligne,
+  elle explique qu'une première connexion est nécessaire.
+- **Session hors ligne** : si le jeton ne peut pas être rafraîchi faute de réseau, le dernier compte
+  connu de l'appareil reste utilisable en lecture/écriture locale ; la synchro attend le réseau.
+- **Déconnexion** : pause du moteur, attente de la synchro en cours, **effacement de la base locale**,
+  puis fin de session — dans cet ordre, pour qu'aucun billet ne reste sur un appareil déconnecté.
+  Un avertissement est affiché s'il reste des modifications non envoyées.
+- **Changement de compte sur un appareil** : base locale effacée avant de charger le nouveau compte.
+- **Thème** : préférence propre à l'appareil (`localStorage`), appliquée avant le premier rendu.
+- **Profil** : modifiable en ligne uniquement (table hors moteur de synchro). Avatar photo non encore
+  géré : initiale sur la couleur du voyageur.
+- `next.config.ts` : la règle Turbopack `@tailwindcss/turbopack` est **indispensable** (sans elle,
+  Tailwind n'est pas compilé). `cacheComponents` et `partialPrefetching` sont conservés.
+
+## 10. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

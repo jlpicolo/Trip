@@ -4,7 +4,7 @@ Application web collaborative (PWA, offline-first) de préparation et de suivi d
 groupe de voyageurs aux droits égaux. Premier voyage : Japon, 9–30 mars 2027, 4 voyageurs.
 Le nom, les dates, destinations et devises sont des réglages du voyage : l'application est réutilisable.
 
-**État : phase 1 (architecture) terminée — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/REPRISE-ONE-FOR-ALL.md](docs/REPRISE-ONE-FOR-ALL.md).**
+**État : phase 2 (fondations) terminée — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/REPRISE-ONE-FOR-ALL.md](docs/REPRISE-ONE-FOR-ALL.md).**
 
 ## Stack
 
@@ -18,6 +18,18 @@ npm install
 cp .env.example .env.local   # puis compléter
 npm run dev
 ```
+
+## Tests
+
+| Commande | Contenu | Prérequis |
+|---|---|---|
+| `npm test` | unitaires : moteur de synchro, fusion, dates, validation | aucun |
+| `npm run test:integration` | moteur de synchro contre Supabase réel | `.env.local` (clé secrète) |
+| `npm run test:e2e` | navigateur : 2 voyageurs, hors ligne, déconnexion | app lancée (`npm run build && npm run start`), Playwright + Chromium |
+| `npm run test:db` | RLS / synchro SQL sur PostgreSQL local | PostgreSQL 16+ |
+| `npm run test:db:remote` | mêmes tests SQL sur Supabase | jeton `sbp_…` |
+
+Les tests sur Supabase créent des comptes `@example.com` et suppriment toutes leurs données à la fin.
 
 ## Base de données
 

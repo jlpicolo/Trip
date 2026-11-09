@@ -1,26 +1,178 @@
 @import "tailwindcss";
 
+/* Thème : sombre par défaut, clair sur demande (data-theme) ou selon le système. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-base: #0a0a0f;
+  --bg-card: #141418;
+  --bg-elev: #1b1b21;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --text: #e8e8ea;
+  --text-dim: #8a8a8f;
+  --text-mute: #5f5f66;
+  --vermillion: #e8452c;
+  --vermillion-soft: rgba(232, 69, 44, 0.14);
+  --sakura: #f4a6c0;
+  --sakura-soft: rgba(244, 166, 192, 0.12);
+  --night: #7e93d6;
+  --night-soft: rgba(126, 147, 214, 0.14);
+  --success: #5fe0a0;
+  --error: #f07052;
+  --warning: #eab245;
+  --on-accent: #ffffff;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg-base: #f7f4ef;
+  --bg-card: #ffffff;
+  --bg-elev: #efeae2;
+  --border: rgba(20, 20, 30, 0.08);
+  --border-strong: rgba(20, 20, 30, 0.16);
+  --text: #1a1a22;
+  --text-dim: #5c5c66;
+  --text-mute: #8b8b93;
+  --vermillion: #c8371f;
+  --vermillion-soft: rgba(200, 55, 31, 0.1);
+  --sakura: #c24f78;
+  --sakura-soft: rgba(194, 79, 120, 0.1);
+  --night: #2b3a67;
+  --night-soft: rgba(43, 58, 103, 0.08);
+  --success: #17804f;
+  --error: #c0392b;
+  --warning: #9a6a00;
+  --shadow: 0 8px 30px rgba(40, 30, 20, 0.12);
+  color-scheme: light;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-base: var(--bg-base);
+  --color-card: var(--bg-card);
+  --color-elev: var(--bg-elev);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-dim: var(--text-dim);
+  --color-mute: var(--text-mute);
+  --color-vermillion: var(--vermillion);
+  --color-vermillion-soft: var(--vermillion-soft);
+  --color-sakura: var(--sakura);
+  --color-sakura-soft: var(--sakura-soft);
+  --color-night: var(--night);
+  --color-night-soft: var(--night-soft);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+  --color-on-accent: var(--on-accent);
+  --font-sans: var(--font-geist-sans), "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html,
+body {
+  background: var(--bg-base);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+
+button:not(:disabled),
+[role="button"] {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sakura);
+  outline-offset: 2px;
+}
+
+/* Conteneur principal : colonne mobile, élargie sur tablette/ordinateur. */
+.app-main {
+  width: 100%;
+  max-width: 440px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  padding-top: 12px;
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 900px) {
+  .app-main {
+    max-width: 880px;
+    padding-inline: 32px;
+    padding-bottom: 48px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Motif seigaiha (vagues) très discret, utilisé avec modération. */
+.seigaiha {
+  background-image: radial-gradient(circle at 50% 100%, transparent 38%, var(--border-strong) 39%, var(--border-strong) 41%, transparent 42%, transparent 58%, var(--border-strong) 59%, var(--border-strong) 61%, transparent 62%);
+  background-size: 40px 20px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.22s ease-out both;
+}
+
+.animate-sheet-up {
+  animation: sheet-up 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.animate-spin-slow {
+  animation: spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

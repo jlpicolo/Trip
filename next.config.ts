@@ -3,6 +3,17 @@ import type { NextConfig } from "next";
 // Repris de One for All : en-têtes de sécurité globaux et service worker jamais mis en cache HTTP
 // (sinon une nouvelle version du SW peut rester bloquée sur les appareils).
 const nextConfig: NextConfig = {
+  cacheComponents: true,
+  partialPrefetching: true,
+  // Indispensable : c'est ce chargeur qui compile Tailwind CSS 4 sous Turbopack.
+  turbopack: {
+    rules: {
+      "*.css": {
+        loaders: ["@tailwindcss/turbopack"],
+        as: "*.css",
+      },
+    },
+  },
   async headers() {
     return [
       {

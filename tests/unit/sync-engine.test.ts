@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { LocalDb } from "@/lib/db/schema";
-import { SyncEngine } from "@/lib/sync/engine";
+import { DIRECTORY_LOADED_KEY, SyncEngine } from "@/lib/sync/engine";
 import { dayId } from "@/lib/ids";
 import { FakeServer } from "../helpers/fake-server";
 
@@ -208,5 +208,38 @@ describe("refus du serveur", () => {
     expect(a.getStatus()).toMatchObject({ pending: 0, rejected: 1 });
     expect(await a.db.data("expenses").get(id)).toBeUndefined();
     expect((await a.db.rejected.toArray())[0]).toMatchObject({ reason: "shares_sum_mismatch", data: { title: "Taxi" } });
+  });
+});
+
+describe("annuaire des voyages", () => {
+  it("un appareil neuf ne considère la liste des voyages connue qu'après un chargement serveur réussi", async () => {
+    const a = device("alice");
+    await seedTrip(a);
+    const fresh = device("alice");
+    expect(await fresh.db.getMeta(DIRECTORY_LOADED_KEY)).toBeUndefined();
+    server.offline = true;
+    await expect(fresh.refreshDirectory()).rejects.toThrow();
+    expect(await fresh.db.getMeta(DIRECTORY_LOADED_KEY)).toBeUndefined();
+    server.offline = false;
+    await fresh.refreshDirectory();
+    expect(await fresh.db.getMeta(DIRECTORY_LOADED_KEY)).toBeTypeOf("string");
+    expect((await fresh.db.data("trips").get(TRIP))?.name).toBe("Japan Trip");
+  });
+});
+
+describe("déconnexion", () => {
+  it("pause() attend la synchro en cours et bloque les suivantes", async () => {
+    const a = device("alice");
+    await seedTrip(a);
+    const running = a.sync(TRIP);
+    await a.pause();
+    await running;
+    await a.db.data("trips").clear();
+    await a.sync(TRIP);
+    await a.refreshDirectory();
+    expect(await a.db.data("trips").count()).toBe(0);
+    a.resume();
+    await a.refreshDirectory();
+    expect(await a.db.data("trips").count()).toBe(1);
   });
 });

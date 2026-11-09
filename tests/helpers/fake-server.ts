@@ -17,7 +17,10 @@ export class FakeServer {
     return {
       push: async (muts) => this.push(user, muts),
       pull: async (tripId, cursor) => this.pull(tripId, cursor),
-      listTrips: async () => [...this.rows.values()].filter((r) => r._table === "trips") as unknown as Trip[],
+      listTrips: async () => {
+        if (this.offline) throw new NetworkError("hors ligne");
+        return [...this.rows.values()].filter((r) => r._table === "trips").map((r) => this.clean(r)) as unknown as Trip[];
+      },
       listMembers: async () => ({ members: [] as GroupMember[], profiles: [] as Profile[] }),
     };
   }

@@ -91,6 +91,8 @@ select tests.login('00000000-0000-0000-0000-00000000000d');
 select public.accept_invitation((select token from tokens where email = 'thomas@example.com'));
 select tests.ok((select count(*) = 4 from public.group_members where group_id = (select group_id from ctx)),
                 '4 membres visibles depuis Thomas');
+select tests.ok((select count(distinct p.color) = 4 from public.group_members m join public.profiles p on p.id = m.user_id
+                 where m.group_id = (select group_id from ctx)), 'chaque voyageur a une couleur distincte');
 
 -- ---------------------------------------------------------------------------
 -- 3. Voyage créé par Bruno (pas par le créateur du groupe) → égalité

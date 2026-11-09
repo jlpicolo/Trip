@@ -4,12 +4,12 @@ Application web collaborative (PWA, offline-first) de préparation et de suivi d
 groupe de voyageurs aux droits égaux. Premier voyage : Japon, 9–30 mars 2027, 4 voyageurs.
 Le nom, les dates, destinations et devises sont des réglages du voyage : l'application est réutilisable.
 
-**État : phase 1 (architecture) terminée — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).**
+**État : phase 1 (architecture) terminée — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/REPRISE-ONE-FOR-ALL.md](docs/REPRISE-ONE-FOR-ALL.md).**
 
 ## Stack
 
 Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · Supabase (Postgres + RLS, Auth, Storage)
-· Dexie/IndexedDB · Serwist (Service Worker) · MapLibre GL + PMTiles (OpenStreetMap)
+· Dexie/IndexedDB · Service Worker manuel · MapLibre GL + PMTiles (OpenStreetMap)
 
 ## Démarrage local
 

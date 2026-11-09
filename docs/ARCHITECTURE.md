@@ -10,7 +10,7 @@ Le projet a donc été initialisé :
 
 | Élément | Version | Remarque |
 |---|---|---|
-| Next.js (App Router, `src/`) | 16.4.5 | `middleware` s'appelle désormais `proxy` ; Turbopack par défaut |
+| Next.js (App Router, code à la racine) | 16.4.5 | `middleware` s'appelle désormais `proxy` ; Turbopack par défaut |
 | React | 19.3 | |
 | TypeScript | 5, `strict: true` | |
 | Tailwind CSS | 4 | configuration CSS-first (`@theme`) |
@@ -30,7 +30,7 @@ Le projet a donc été initialisé :
 │     │  • blobs : fichiers téléchargés (billets, PDF, images)                   │
 │     │  • tuiles : extraits cartographiques PMTiles par ville                   │
 │  Moteur de synchronisation (push outbox → pull delta → fusion → conflits)      │
-│  Service Worker (Serwist) : coquille applicative, assets, polices, glyphes     │
+│  Service Worker manuel (public/sw.js) : coquille, assets, polices, glyphes    │
 └───────────────┬────────────────────────────────────────────────────────────────┘
                 │ HTTPS, uniquement quand réseau disponible
 ┌───────────────▼──────────────┐   ┌───────────────────────┐   ┌─────────────────┐
@@ -64,8 +64,9 @@ Le projet a donc été initialisé :
 
 ### Arborescence cible
 
+Code à la racine du dépôt (pas de `src/`), comme One for All.
+
 ```
-src/
   app/                    # routes (coquilles) : (auth)/connexion, (app)/accueil, planning, carte…
   components/             # UI : ui/ (design system), features/<section>/
   hooks/                  # hooks React (useTrip, useSyncStatus, useOnline…)
@@ -77,7 +78,7 @@ src/
     supabase/             # clients navigateur / serveur
     validation/           # schémas zod partagés client + route handlers
     errors/               # erreurs typées, messages FR, journalisation
-  sw/                     # service worker (Serwist)
+  public/sw.js            # service worker écrit à la main (pas de plugin)
 supabase/
   migrations/             # SQL versionné
   tests/                  # tests SQL RLS / synchro (scripts/test-db.sh)
@@ -237,14 +238,15 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 
 ### PWA
 
-- Service Worker **Serwist** (successeur maintenu de next-pwa) : précache de la coquille, des pages,
-  des polices, des glyphes et sprites de la carte ; *stale-while-revalidate* pour les assets.
+- Service Worker **écrit à la main** (`public/sw.js`), recette officielle Next 16 — leçon de One for All :
+  `next-pwa` et ses dérivés dépendent de Webpack, incompatible avec Turbopack (défaut en v16).
+  Précache de la coquille et des pages (liste générée au build), polices, glyphes et sprites de la carte ;
+  *cache-first* pour `/_next/static`, *stale-while-revalidate* pour les autres assets ; jamais de cache
+  pour `/api/*`, l'auth et les appels Supabase (les données passent par IndexedDB).
 - Mise à jour : nouvelle version détectée → bandeau « Nouvelle version disponible — Recharger » ;
   jamais d'activation forcée pendant une saisie.
 - Manifest : nom modifiable, icônes (dont `maskable`), écran de lancement, `display: standalone`,
   couleurs de thème ; balises `apple-touch-icon` et écrans de démarrage iOS.
-- Compatibilité Serwist/Next 16 (Turbopack) à confirmer en phase 2 ; repli : Service Worker écrit à la
-  main (le périmètre est réduit car les données passent par IndexedDB, pas par le cache HTTP).
 
 ---
 
@@ -286,7 +288,26 @@ dépendent ; le développer après coup obligerait à réécrire chaque écran.
 | Égalité totale des droits | un membre peut tout modifier/supprimer | suppression logique (restauration possible) + historique des modifications |
 | Next.js 16 très récent | APIs modifiées (ex. `proxy.ts`) | lecture de la documentation embarquée `node_modules/next/dist/docs` avant chaque usage |
 
-## 8. Décisions prises (détails secondaires)
+## 8. Design system (base One for All + identité japonaise)
+
+| Jeton | Sombre (défaut) | Clair | Origine |
+|---|---|---|---|
+| `--color-bg-base` | `#0a0a0f` | `#f7f4ef` (papier washi) | One for All |
+| `--color-bg-card` | `#141418` | `#ffffff` | One for All |
+| `--color-bg-elev` | `#1b1b21` | `#efeae2` | One for All |
+| `--color-border` | `rgba(255,255,255,.06)` | `rgba(20,20,30,.08)` | One for All |
+| `--color-text` / `-dim` | `#e8e8ea` / `#8a8a8f` | `#1a1a22` / `#5c5c66` | One for All |
+| `--color-vermillion` (accent principal) | `#e8452c` | `#c8371f` | Japan Trip |
+| `--color-sakura` | `#f4a6c0` | `#d9638a` | Japan Trip |
+| `--color-night` (bleu nuit) | `#2b3a67` / `#7e93d6` | `#2b3a67` | Japan Trip |
+| succès / erreur / alerte | `#5fe0a0` / `#f07052` / `#eab245` | assombris pour le contraste | One for All |
+
+Mise en page héritée de One for All : cartes arrondies 12–16 px, bord subtil, padding 16 px, espacement
+10–12 px, contenu décalé de 80 px au-dessus de la barre de navigation inférieure, `safe-area-inset-*`,
+`-webkit-tap-highlight-color: transparent`. Adaptation Japan Trip : colonne de 440 px sur mobile, mais
+mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonnes), et thème clair.
+
+## 9. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

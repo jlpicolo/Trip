@@ -290,6 +290,7 @@ select tests.throws($$insert into storage.objects (bucket_id, name)
   values ('trip-files', '20000000-0000-0000-0000-000000000001/x/evil.pdf')$$, 'un non-membre ne peut pas déposer');
 select tests.throws($$insert into storage.objects (bucket_id, name) values ('trip-files', 'pas-un-uuid/x.pdf')$$,
   'chemin invalide refusé');
+reset role;
 select tests.ok((select public from storage.buckets where id = 'trip-files') = false, 'bucket privé');
 
 -- Un document ne peut pas pointer vers le stockage d'un autre voyage

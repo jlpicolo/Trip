@@ -58,4 +58,5 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 ## Tests
 
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).
+- `npm run test:db:remote` : mêmes tests sur le projet Supabase réel (nettoyage automatique).
 - `npm run build`, `npm run lint`, `npm run typecheck` avant chaque commit.

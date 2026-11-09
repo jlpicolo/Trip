@@ -254,7 +254,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 
 | Phase | Contenu | Critère de fin (testé) |
 |---|---|---|
-| **1. Analyse** ✅ | inspection, architecture, schéma SQL + RLS + RPC de synchro, tests SQL | migration appliquée, 52 assertions SQL vertes |
+| **1. Analyse** ✅ | inspection, architecture, schéma SQL + RLS + RPC de synchro, tests SQL | migration appliquée sur le projet Supabase réel ; 52 assertions vertes en local **et** sur Supabase |
 | **2. Fondations** | dépendances, client Supabase, auth (inscription, connexion, déconnexion, mot de passe oublié), profil (pseudo, couleur, avatar), création de groupe + voyage, invitations, design system (sombre/clair), navigation mobile, gestion d'erreurs, couche Dexie + moteur de synchro (base nécessaire à toutes les sections) | 4 comptes réels sur un projet Supabase de test, même voyage visible sur 2 navigateurs, build OK |
 | **3a. Planning** | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
 | **3b. Carte** | MapLibre + PMTiles en ligne, catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |

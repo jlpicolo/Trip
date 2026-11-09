@@ -28,6 +28,10 @@ npx supabase link --project-ref <ref>
 npx supabase db push
 ```
 
+Projet de production : `brbhfakxpozrqdfgywdv` (« Trip », région eu-west-3 Paris, PostgreSQL 17).
+Migration `20261109000000_init` appliquée le 9 novembre 2026 et enregistrée dans
+`supabase_migrations.schema_migrations` (compatible `supabase db push`).
+
 ### Tests SQL (RLS, Storage, synchronisation)
 
 `scripts/test-db.sh` crée une base PostgreSQL jetable, y installe un stub minimal des schémas
@@ -38,5 +42,12 @@ exécute les assertions de `supabase/tests/*.test.sql`.
 PGHOST=localhost PGUSER=postgres npm run test:db
 ```
 
-Le stub ne remplace pas un test sur un vrai projet Supabase : il sera complété par des tests
-d'intégration contre `supabase start` (Docker) en CI.
+### Tests sur le vrai projet Supabase
+
+```bash
+SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=sbp_... npm run test:db:remote
+```
+
+Exécute les mêmes assertions via l'API de gestion Supabase, puis supprime systématiquement les
+données de test (`supabase/tests/remote_cleanup.sql`). Le jeton `sbp_…` se crée dans
+*Account preferences → Access Tokens*.

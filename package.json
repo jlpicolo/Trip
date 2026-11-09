@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test:db": "bash scripts/test-db.sh",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:db:remote": "bash scripts/test-db-remote.sh"
   },
   "dependencies": {
     "next": "16.4.5",

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeUsername } from "@/lib/auth/username";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date invalide");
 const currency = z.string().regex(/^[A-Z]{3}$/, "Code devise sur 3 lettres (ex. EUR)");
@@ -6,7 +7,15 @@ const currency = z.string().regex(/^[A-Z]{3}$/, "Code devise sur 3 lettres (ex. 
 export const emailSchema = z.string().trim().toLowerCase().email("Adresse email invalide");
 export const passwordSchema = z.string().min(10, "10 caractères minimum").max(72, "72 caractères maximum");
 
-export const signInSchema = z.object({ email: emailSchema, password: z.string().min(1, "Mot de passe requis") });
+export const usernameSchema = z
+  .string()
+  .transform((v, ctx) => {
+    const u = normalizeUsername(v);
+    if (!u) ctx.addIssue({ code: "custom", message: "Nom d'utilisateur invalide (2 à 32 lettres, chiffres, . _ -)" });
+    return u ?? "";
+  });
+
+export const signInSchema = z.object({ username: usernameSchema, password: z.string().min(1, "Mot de passe requis") });
 
 export const profileSchema = z.object({
   display_name: z.string().trim().min(1, "Indiquez un prénom ou pseudo").max(60),

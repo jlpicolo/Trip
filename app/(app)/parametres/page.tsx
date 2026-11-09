@@ -58,7 +58,7 @@ export default function SettingsPage() {
         </Card>
       </Link>
       <SectionTitle>Compte</SectionTitle>
-      {session.status === "signed_in" && <AccountSection email={session.email} />}
+      {session.status === "signed_in" && <AccountSection username={session.username} />}
     </div>
   );
 }

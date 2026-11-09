@@ -9,6 +9,7 @@ import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { toMessage } from "@/lib/errors/messages";
 import { fieldErrors, signInSchema } from "@/lib/validation/schemas";
 import { safeNext } from "@/lib/navigation";
+import { usernameToEmail } from "@/lib/auth/username";
 
 function LoginForm() {
   const router = useRouter();
@@ -27,7 +28,10 @@ function LoginForm() {
     if (!parsed.success) return setErrors(fieldErrors(parsed.error));
     setErrors({});
     setLoading(true);
-    const { error } = await getBrowserSupabase().auth.signInWithPassword(parsed.data);
+    const { error } = await getBrowserSupabase().auth.signInWithPassword({
+      email: usernameToEmail(parsed.data.username)!,
+      password: parsed.data.password,
+    });
     setLoading(false);
     if (error) return setFormError(toMessage(error));
     router.replace(next);
@@ -37,11 +41,12 @@ function LoginForm() {
     <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <h1 className="text-2xl font-bold">Connexion</h1>
       <FormError message={formError ?? linkError} />
-      <Field label="Email" name="email" type="email" autoComplete="email" inputMode="email" required error={errors.email} />
+      <Field label="Nom d'utilisateur" name="username" autoComplete="username" autoCapitalize="none" autoCorrect="off"
+        spellCheck={false} required error={errors.username} />
       <Field label="Mot de passe" name="password" type="password" autoComplete="current-password" required error={errors.password} />
       <Button type="submit" loading={loading} block>Se connecter</Button>
       <div className="flex flex-col gap-2 text-center text-sm text-dim">
-        <p>Votre identifiant et votre mot de passe vous sont transmis par l&apos;organisateur du voyage.</p>
+        <p>Votre nom d&apos;utilisateur et votre mot de passe vous sont transmis par l&apos;organisateur du voyage.</p>
         <Link href="/mot-de-passe-oublie" className="underline-offset-4 hover:underline">Mot de passe oublié ?</Link>
       </div>
     </form>

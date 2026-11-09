@@ -171,7 +171,7 @@ Aucun voyageur n'a de privilège supplémentaire.
 
 | Besoin | Service retenu | Clé ? | Pourquoi / alternative |
 |---|---|---|---|
-| Base, auth, fichiers | **Supabase** | oui (URL + clé anon publique ; `service_role` côté serveur) | demandé ; RLS + Storage privé |
+| Base, auth, fichiers | **Supabase** | oui (URL + clé publishable ; clé secrète uniquement dans les scripts du propriétaire) | demandé ; RLS + Storage privé ; connexion par nom d'utilisateur |
 | Hébergement web | **Vercel** (Hobby) | non | natif Next.js ; alternative : Netlify, Cloudflare Pages |
 | Fond de carte | **PMTiles auto-hébergés** (extraits OSM de la build Protomaps) sur **Cloudflare R2** | non | seul moyen propre et conforme de télécharger des zones hors ligne. Les serveurs `tile.openstreetmap.org` l'interdisent ; les fournisseurs commerciaux (MapTiler…) restreignent le cache hors ligne |
 | Recherche de lieux | **Nominatim** (OSM) | non | gratuit, 1 req/s max, pas d'autocomplétion → recherche sur validation. Les adresses japonaises sont mal couvertes : saisie manuelle des coordonnées / collage d'un lien Google Maps en secours |
@@ -327,6 +327,9 @@ mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonn
   publique désactivée dans Supabase, aucun email envoyé. Création, réinitialisation de mot de passe et
   ajout au groupe via `scripts/travelers.mjs` (clé secrète, ordinateur du propriétaire uniquement).
   Chaque voyageur change son mot de passe dans l'app. Voir [DEPLOIEMENT.md](./DEPLOIEMENT.md).
+- **Connexion par nom d'utilisateur, sans email** : `lib/auth/username.ts` dérive une adresse interne
+  `<nom>@japan-trip.invalid` (domaine réservé, aucun courrier possible) exigée par Supabase Auth ; elle
+  n'est jamais affichée. Même règle dans `scripts/lib/username.mjs` (parité vérifiée par test unitaire).
 - **Invitations par lien** (copie / partage natif) conservées pour ajouter un compte existant à un
   groupe depuis l'app (RPC `create_invitation` sous RLS). L'application n'utilise **jamais** la clé secrète.
 - **Appareil neuf** : tant que la liste des voyages n'a jamais été chargée depuis le serveur

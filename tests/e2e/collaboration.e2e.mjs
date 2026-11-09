@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import { createClient } from "@supabase/supabase-js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { usernameToEmail } from "../../scripts/lib/username.mjs";
 
 // Playwright n'est pas une dépendance du projet (navigateur fourni par l'environnement de test).
 const { chromium } = createRequire(import.meta.url)("playwright");
@@ -24,8 +25,8 @@ const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUP
 });
 const run = Date.now().toString(36);
 const people = {
-  alice: { email: `jt-e2e-${run}-alice@example.com`, password: `Alice-${run}-pass`, name: "Alice" },
-  bruno: { email: `jt-e2e-${run}-bruno@example.com`, password: `Bruno-${run}-pass`, name: "Bruno" },
+  alice: { username: `alice-${run}`, password: `Alice-${run}-pass`, name: "Alice" },
+  bruno: { username: `bruno-${run}`, password: `Bruno-${run}-pass`, name: "Bruno" },
 };
 const results = [];
 const pages = {};
@@ -47,7 +48,7 @@ let browser;
 try {
   for (const p of Object.values(people)) {
     const { data, error } = await admin.auth.admin.createUser({
-      email: p.email, password: p.password, email_confirm: true, user_metadata: { display_name: p.name },
+      email: usernameToEmail(p.username), password: p.password, email_confirm: true, user_metadata: { display_name: p.name },
     });
     if (error) throw error;
     p.id = data.user.id;
@@ -67,7 +68,7 @@ try {
   }
 
   const login = async (page, p) => {
-    await page.getByLabel("Email").fill(p.email);
+    await page.getByLabel("Nom d'utilisateur").fill(p.username.toUpperCase()); // casse indifférente
     await page.getByLabel("Mot de passe").fill(p.password);
     await page.getByRole("button", { name: "Se connecter" }).click();
   };
@@ -76,14 +77,15 @@ try {
     await alice.goto(`${BASE}/accueil`);
     await alice.waitForURL(/\/connexion\?next=%2Faccueil/);
     assert.equal(await alice.getByRole("link", { name: /Créer un compte/ }).count(), 0, "pas d'inscription publique");
+    assert.equal(await alice.locator('input[type="email"]').count(), 0, "aucun champ email");
     await alice.screenshot({ path: `${SHOTS}/01-connexion.png` });
   });
 
   await step("mauvais mot de passe : message clair en français", async () => {
-    await alice.getByLabel("Email").fill(people.alice.email);
+    await alice.getByLabel("Nom d'utilisateur").fill(people.alice.username);
     await alice.getByLabel("Mot de passe").fill("mauvais-mot-de-passe");
     await alice.getByRole("button", { name: "Se connecter" }).click();
-    await alice.getByText("Email ou mot de passe incorrect.").waitFor();
+    await alice.getByText("Nom d'utilisateur ou mot de passe incorrect.").waitFor();
   });
 
   await step("Alice se connecte et arrive sur la création du voyage", async () => {
@@ -105,7 +107,7 @@ try {
 
   let link;
   await step("Alice crée un lien d'invitation pour Bruno", async () => {
-    await alice.getByLabel("Inviter un voyageur (email)").fill(people.bruno.email);
+    await alice.getByLabel("Inviter un voyageur (nom d'utilisateur)").fill(people.bruno.username);
     await alice.getByRole("button", { name: "Créer le lien d'invitation" }).click();
     const input = alice.getByLabel("Lien d'invitation");
     await input.waitFor();
@@ -119,6 +121,7 @@ try {
     await bruno.getByRole("link", { name: "Se connecter" }).click();
     await login(bruno, people.bruno);
     await bruno.waitForURL(/\/invitation\?token=/);
+    await bruno.getByText(`Connecté en tant que ${people.bruno.username}`).waitFor();
     await bruno.getByRole("button", { name: "Rejoindre" }).click();
     await bruno.waitForURL(/\/accueil/);
     await bruno.getByRole("heading", { name: "Japan Trip" }).waitFor();

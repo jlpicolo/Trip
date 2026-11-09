@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useTravelers } from "@/hooks/useTrip";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { toMessage } from "@/lib/errors/messages";
-import { emailSchema } from "@/lib/validation/schemas";
+import { emailToUsername, usernameToEmail } from "@/lib/auth/username";
 
 interface PendingInvite { id: string; email: string; expires_at: string }
 
@@ -42,15 +42,15 @@ export function TravelersSection({ groupId, userId }: { groupId: string; userId:
 
   async function invite(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = emailSchema.safeParse(email);
-    if (!parsed.success) return setError(parsed.error.issues[0].message);
+    const target = usernameToEmail(email);
+    if (!target) return setError("Nom d'utilisateur invalide.");
     if (!navigator.onLine) return setError("Connexion internet requise pour créer une invitation.");
     setError(null);
     setLoading(true);
-    const { data: token, error: err } = await getBrowserSupabase().rpc("create_invitation", { p_group_id: groupId, p_email: parsed.data });
+    const { data: token, error: err } = await getBrowserSupabase().rpc("create_invitation", { p_group_id: groupId, p_email: target });
     setLoading(false);
     if (err) return setError(toMessage(err));
-    setLink({ email: parsed.data, url: `${window.location.origin}/invitation?token=${token}` });
+    setLink({ email: emailToUsername(target), url: `${window.location.origin}/invitation?token=${token}` });
     setEmail("");
     loadPending();
   }
@@ -102,8 +102,8 @@ export function TravelersSection({ groupId, userId }: { groupId: string; userId:
 
       <form onSubmit={invite} className="flex flex-col gap-3" noValidate>
         <FormError message={error} />
-        <Field label="Inviter un voyageur (email)" type="email" inputMode="email" value={email}
-          onChange={(e) => setEmail(e.target.value)} hint="Le voyageur doit déjà avoir un compte avec cette adresse (créé par l'organisateur)." />
+        <Field label="Inviter un voyageur (nom d'utilisateur)" value={email} autoCapitalize="none" autoCorrect="off" spellCheck={false}
+          onChange={(e) => setEmail(e.target.value)} hint="Son compte doit déjà exister (créé par l'organisateur)." />
         <Button type="submit" variant="subtle" icon="plus" loading={loading}>Créer le lien d&apos;invitation</Button>
       </form>
 
@@ -125,7 +125,7 @@ export function TravelersSection({ groupId, userId }: { groupId: string; userId:
           <ul className="flex flex-col gap-2">
             {pending.map((p) => (
               <li key={p.id} className="flex items-center gap-2 text-sm">
-                <span className="flex-1 truncate">{p.email}</span>
+                <span className="flex-1 truncate">{emailToUsername(p.email)}</span>
                 <Button variant="ghost" onClick={() => revoke(p.id)}>Annuler</Button>
               </li>
             ))}

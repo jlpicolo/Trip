@@ -2,18 +2,21 @@
 /**
  * Gestion des comptes par le propriétaire du service (pas de compte « admin » dans l'app :
  * ce script s'exécute sur l'ordinateur du propriétaire, avec la clé secrète de .env.local).
+ * Les voyageurs se connectent avec un NOM D'UTILISATEUR, sans email.
  *
- *   node scripts/travelers.mjs list
- *   node scripts/travelers.mjs create <email> <prénom> [--group <id-du-groupe>] [--password <mdp>]
- *   node scripts/travelers.mjs password <email> [--password <mdp>]
- *   node scripts/travelers.mjs add-to-group <email> <id-du-groupe>
- *   node scripts/travelers.mjs delete <email>
+ *   npm run travelers -- list
+ *   npm run travelers -- create <nom> [--affiche "Prénom"] [--group <id-du-groupe>] [--password <mdp>]
+ *   npm run travelers -- password <nom> [--password <mdp>]
+ *   npm run travelers -- add-to-group <nom> <id-du-groupe>
+ *   npm run travelers -- delete <nom>
  *
+ * <nom> : 2 à 32 caractères, accents et majuscules convertis (« Chloé » → chloe).
  * Sans --password, un mot de passe aléatoire lisible est généré et affiché une seule fois.
  */
 import { createClient } from "@supabase/supabase-js";
 import { randomInt } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { emailToUsername, normalizeUsername, usernameToEmail } from "./lib/username.mjs";
 
 try {
   for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8").split("\n")) {
@@ -52,8 +55,14 @@ function checkPassword(p) {
   return p;
 }
 
-async function findUser(email) {
-  const target = email.trim().toLowerCase();
+function toEmail(name) {
+  const email = usernameToEmail(name ?? "");
+  if (!email) throw new Error(`Nom d'utilisateur invalide : « ${name ?? ""} » (2 à 32 lettres, chiffres, . _ -)`);
+  return email;
+}
+
+async function findUser(name) {
+  const target = toEmail(name);
   for (let page = 1; ; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw error;
@@ -88,48 +97,51 @@ async function main() {
           const t = (trips ?? []).filter((x) => x.group_id === m.group_id).map((x) => x.name).join(", ");
           return `${g?.name ?? m.group_id} [${m.group_id}]${t ? ` — voyages : ${t}` : ""}`;
         });
-        console.log(`${u.email}  ·  ${name}\n    ${gs.length ? gs.join("\n    ") : "(aucun groupe)"}`);
+        console.log(`${emailToUsername(u.email)}  ·  ${name}\n    ${gs.length ? gs.join("\n    ") : "(aucun groupe)"}`);
       }
       if (data.users.length === 0) console.log("Aucun compte.");
       return;
     }
     case "create": {
-      const [email, name] = args;
-      if (!email || !name) throw new Error("Usage : create <email> <prénom> [--group <id>] [--password <mdp>]");
+      const [raw] = args;
+      if (!raw) throw new Error('Usage : create <nom> [--affiche "Prénom"] [--group <id>] [--password <mdp>]');
+      const email = toEmail(raw);
+      const display = flags.affiche ?? raw.trim().replace(/^./, (c) => c.toUpperCase());
       const password = checkPassword(flags.password ?? generatePassword());
       const { data, error } = await admin.auth.admin.createUser({
-        email: email.trim().toLowerCase(), password, email_confirm: true, user_metadata: { display_name: name },
+        email, password, email_confirm: true, user_metadata: { display_name: display },
       });
-      if (error) throw error;
-      console.log(`Compte créé : ${data.user.email} (${name})`);
+      if (error) throw new Error(/already been registered|already exists/i.test(error.message) ? `Le nom « ${normalizeUsername(raw)} » est déjà pris.` : error.message);
+      console.log(`Compte créé — nom d'utilisateur : ${normalizeUsername(raw)} (affiché « ${display} »)`);
       if (flags.group) console.log(`Ajouté au groupe « ${await addToGroup(data.user.id, flags.group)} »`);
       console.log(`Mot de passe : ${password}\n→ À transmettre au voyageur ; il pourra le changer dans Paramètres › Compte.`);
       return;
     }
     case "password": {
-      const [email] = args;
-      const user = email && (await findUser(email));
-      if (!user) throw new Error(`Compte introuvable : ${email}`);
+      const [name] = args;
+      const user = await findUser(name);
+      if (!user) throw new Error(`Compte introuvable : ${name}`);
       const password = checkPassword(flags.password ?? generatePassword());
       const { error } = await admin.auth.admin.updateUserById(user.id, { password });
       if (error) throw error;
-      console.log(`Nouveau mot de passe pour ${user.email} : ${password}`);
+      console.log(`Nouveau mot de passe pour ${emailToUsername(user.email)} : ${password}`);
       return;
     }
     case "add-to-group": {
-      const [email, groupId] = args;
-      const user = email && (await findUser(email));
-      if (!user || !groupId) throw new Error("Usage : add-to-group <email> <id-du-groupe>");
-      console.log(`${user.email} ajouté au groupe « ${await addToGroup(user.id, groupId)} »`);
+      const [name, groupId] = args;
+      if (!groupId) throw new Error("Usage : add-to-group <nom> <id-du-groupe>");
+      const user = await findUser(name);
+      if (!user) throw new Error(`Compte introuvable : ${name}`);
+      console.log(`${emailToUsername(user.email)} ajouté au groupe « ${await addToGroup(user.id, groupId)} »`);
       return;
     }
     case "delete": {
-      const [email] = args;
-      const user = email && (await findUser(email));
-      if (!user) throw new Error(`Compte introuvable : ${email}`);
+      const [name] = args;
+      const user = await findUser(name);
+      if (!user) throw new Error(`Compte introuvable : ${name}`);
       const { error } = await admin.auth.admin.deleteUser(user.id);
       if (error) throw error;
-      console.log(`Compte supprimé : ${user.email}`);
+      console.log(`Compte supprimé : ${emailToUsername(user.email)}`);
       return;
     }
     default:

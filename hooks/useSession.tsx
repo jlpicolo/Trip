@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { getLocalDb, wipeLocalDb } from "@/lib/db/schema";
 import { getEngine } from "@/lib/sync/client";
+import { emailToUsername } from "@/lib/auth/username";
 
 export type SessionState =
   | { status: "loading" }
   | { status: "signed_out" }
-  | { status: "signed_in"; userId: string; email: string; offline: boolean };
+  | { status: "signed_in"; userId: string; email: string; username: string; offline: boolean };
 
 const SessionContext = createContext<SessionState>({ status: "loading" });
 
@@ -31,9 +32,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         if (known && known.userId !== userId) await wipeLocalDb(db);
         await db.setMeta("account", { userId, email });
         getEngine().resume();
-        if (!cancelled) setState({ status: "signed_in", userId, email: email ?? "", offline: false });
+        if (!cancelled) setState({ status: "signed_in", userId, email: email ?? "", username: emailToUsername(email), offline: false });
       } else if (known && !navigator.onLine) {
-        if (!cancelled) setState({ status: "signed_in", userId: known.userId, email: known.email, offline: true });
+        if (!cancelled) setState({ status: "signed_in", userId: known.userId, email: known.email, username: emailToUsername(known.email), offline: true });
       } else if (!cancelled) {
         setState({ status: "signed_out" });
       }

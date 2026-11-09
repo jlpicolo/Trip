@@ -32,7 +32,7 @@ function Invitation() {
       <Card className="flex flex-col gap-3">
         <h1 className="text-xl font-bold">Vous êtes invité à un voyage</h1>
         <p className="text-sm text-dim">
-          Connectez-vous avec le compte que l&apos;organisateur vous a transmis (même adresse email que l&apos;invitation).
+          Connectez-vous avec le nom d&apos;utilisateur que l&apos;organisateur vous a transmis.
         </p>
         <ButtonLink href={`/connexion?next=${encodeURIComponent(here)}`} block>Se connecter</ButtonLink>
       </Card>
@@ -68,7 +68,7 @@ function Invitation() {
     <Card className="flex flex-col gap-3">
       <h1 className="text-xl font-bold">Rejoindre le groupe de voyage</h1>
       <p className="text-sm text-dim">
-        Connecté en tant que <strong className="text-ink">{session.email}</strong>. Une fois membre, vous aurez exactement
+        Connecté en tant que <strong className="text-ink">{session.username}</strong>. Une fois membre, vous aurez exactement
         les mêmes droits que les autres voyageurs.
       </p>
       <FormError message={error} />

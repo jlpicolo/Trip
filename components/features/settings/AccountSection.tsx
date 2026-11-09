@@ -10,7 +10,7 @@ import { getBrowserSupabase } from "@/lib/supabase/browser";
 import { getLocalDb, wipeLocalDb } from "@/lib/db/schema";
 import { getEngine } from "@/lib/sync/client";
 
-export function AccountSection({ email }: { email: string }) {
+export function AccountSection({ username }: { username: string }) {
   const router = useRouter();
   const { pending } = useSyncStatus();
   const [confirming, setConfirming] = useState(false);
@@ -29,7 +29,7 @@ export function AccountSection({ email }: { email: string }) {
 
   return (
     <Card className="flex flex-col gap-3">
-      <p className="text-sm text-dim">Connecté avec <strong className="break-all text-ink">{email}</strong></p>
+      <p className="text-sm text-dim">Connecté en tant que <strong className="break-all text-ink">{username}</strong></p>
       <Link href="/nouveau-mot-de-passe" className="text-sm font-semibold text-sakura">Changer de mot de passe</Link>
       {confirming && (
         <p role="alert" className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-warning">

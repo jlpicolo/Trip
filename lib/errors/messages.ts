@@ -1,11 +1,9 @@
 import { NetworkError } from "@/lib/sync/remote";
 
 const AUTH: Record<string, string> = {
-  invalid_credentials: "Email ou mot de passe incorrect.",
-  email_not_confirmed: "Adresse email non confirmée : ouvrez le lien reçu par email.",
+  invalid_credentials: "Nom d'utilisateur ou mot de passe incorrect.",
   user_already_exists: "Un compte existe déjà avec cet email.",
   weak_password: "Mot de passe trop faible (10 caractères minimum).",
-  over_email_send_rate_limit: "Trop d'emails envoyés récemment. Réessayez dans une heure.",
   over_request_rate_limit: "Trop de tentatives. Patientez quelques minutes.",
   same_password: "Le nouveau mot de passe doit être différent de l'ancien.",
   session_not_found: "Session expirée : reconnectez-vous.",
@@ -15,7 +13,7 @@ const AUTH: Record<string, string> = {
 const DB: Record<string, string> = {
   invitation_invalid: "Lien d'invitation invalide ou expiré.",
   invitation_used: "Ce lien d'invitation a déjà été utilisé par un autre compte.",
-  invitation_email_mismatch: "Ce lien d'invitation est destiné à une autre adresse email.",
+  invitation_email_mismatch: "Ce lien d'invitation est destiné à un autre voyageur.",
   forbidden: "Accès refusé : vous n'êtes pas membre de ce voyage.",
   not_authenticated: "Vous devez être connecté.",
 };

@@ -72,4 +72,5 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 ## Exploitation
 
 - Inscription publique désactivée : comptes gérés par `npm run travelers` (voir `docs/DEPLOIEMENT.md`).
+- Connexion par **nom d'utilisateur** (aucun email visible) : toujours passer par `lib/auth/username.ts`.
 - Ne jamais ajouter `SUPABASE_SECRET_KEY` aux variables Vercel ni l'utiliser dans `app/` ou `components/`.

@@ -30,31 +30,40 @@ affiche « Variable d'environnement manquante », les variables n'étaient pas p
 
 ## Gestion des comptes (propriétaire du service)
 
+Les voyageurs se connectent avec un **nom d'utilisateur** et un mot de passe, **sans email**.
+Supabase exigeant une adresse, une adresse interne est dérivée du nom (`chloe` → `chloe@japan-trip.invalid`,
+domaine réservé qui ne peut recevoir aucun courrier) ; elle n'apparaît jamais dans l'application.
+
 Pas d'administrateur dans l'application : la gestion des comptes se fait depuis un ordinateur avec
 `.env.local` contenant `NEXT_PUBLIC_SUPABASE_URL` et `SUPABASE_SECRET_KEY`.
 
 ```bash
 npm run travelers -- list
-npm run travelers -- create thomas@exemple.fr Thomas
-npm run travelers -- create chloe@exemple.fr Chloé --group <id-du-groupe>
-npm run travelers -- password thomas@exemple.fr
-npm run travelers -- add-to-group thomas@exemple.fr <id-du-groupe>
-npm run travelers -- delete thomas@exemple.fr
+npm run travelers -- create Thomas
+npm run travelers -- create Chloé --group <id-du-groupe>        # nom d'utilisateur : chloe
+npm run travelers -- create jl --affiche "Jean-Luc"             # nom affiché différent
+npm run travelers -- password thomas
+npm run travelers -- add-to-group thomas <id-du-groupe>
+npm run travelers -- delete thomas
 ```
+
+Noms d'utilisateur : 2 à 32 caractères ; majuscules et accents sont convertis (« Chloé » → `chloe`), la
+casse est ignorée à la connexion.
 
 - Sans `--password`, un mot de passe aléatoire (ex. `Pu4C-TsL4-Ay3Z`) est généré et affiché **une seule fois**.
 - `list` affiche les groupes et leur identifiant (nécessaire pour `--group` / `add-to-group`).
 - Chaque voyageur peut ensuite changer son mot de passe dans *Paramètres › Compte*.
-- Mot de passe oublié : `npm run travelers -- password <email>` puis transmettre le nouveau.
+- Mot de passe oublié : `npm run travelers -- password <nom>` puis transmettre le nouveau.
 - Ajouter quelqu'un à un groupe peut aussi se faire depuis l'app (*Paramètres › Voyageurs*, lien
-  d'invitation) si son compte existe déjà avec la même adresse email.
+  d'invitation à partager) si son compte existe déjà.
 
 ### Mise en route du premier voyage
 
-1. `npm run travelers -- create <votre-email> <votre-prénom>`
+1. `npm run travelers -- create <votre-prénom>`
 2. Se connecter sur le site : l'écran « Bienvenue » propose de créer le voyage (pré-rempli Japon 2027).
 3. `npm run travelers -- list` pour obtenir l'identifiant du groupe créé.
-4. Pour chacun des 3 autres : `npm run travelers -- create <email> <prénom> --group <id>`.
+4. Pour chacun des 3 autres : `npm run travelers -- create <prénom> --group <id>`, puis transmettre
+   nom d'utilisateur + mot de passe.
 
 ## Base de données
 

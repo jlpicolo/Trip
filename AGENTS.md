@@ -17,7 +17,7 @@ Architecture détaillée : [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
 Conventions reprises du projet One for All : [docs/REPRISE-ONE-FOR-ALL.md](./docs/REPRISE-ONE-FOR-ALL.md).
 
 Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript strict · Tailwind CSS **4**
-· Supabase (Postgres + RLS, Auth, Storage) · Dexie (IndexedDB) · MapLibre GL + PMTiles.
+· Supabase (Postgres + RLS, Auth, Storage) · Dexie (IndexedDB) · MapLibre GL 6 (tuiles OpenFreeMap).
 
 ## Pièges Next.js 16
 
@@ -46,13 +46,16 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - Commentaires : uniquement le POURQUOI non évident, jamais la paraphrase du code.
 - Types partagés dans `lib/types/<domaine>.ts` ; schémas zod dans `lib/validation/`.
 - Les composants ne lisent jamais le réseau : lecture/écriture via `lib/db/<domaine>.ts` (IndexedDB),
-  le réseau passe exclusivement par `lib/sync/`.
+  le réseau passe exclusivement par `lib/sync/` — seule exception : les services externes en ligne
+  uniquement (recherche de lieux `lib/geocoding.ts`, taux de change), qui signalent clairement le hors ligne.
 - Identifiants : `crypto.randomUUID()` (UUID requis par Postgres) ; journées : UUID v5 déterministe.
 - Argent : entiers en unités mineures ; formatage via `lib/formatters.ts` (`Intl.NumberFormat`).
 - Composants UI dans `components/ui/*`, sobres ; icônes en SVG inline (pas de bibliothèque d'icônes),
   animations en CSS uniquement.
 - Un seul Drawer par page, contrôlé par état. Le Drawer est rendu par portail dans `<body>` : ne pas
   revenir à un rendu en place (un ancêtre avec `transform` casse `position: fixed`).
+- Couleur du fond de page : jeton `canvas` (`bg-canvas`). Ne jamais nommer un jeton de couleur comme une
+  taille Tailwind (`base`, `sm`, `lg`…) : `text-base` deviendrait aussi une couleur.
 - Animations CSS d'apparition en `animation-fill-mode: backwards` (jamais `both`/`forwards` avec transform).
 - Champs numériques : `inputMode="decimal"` + saisie tamponnée (validation au blur).
 - `AGENTS.md` et `docs/ARCHITECTURE.md` sont mis à jour en même temps que le code, phase par phase.
@@ -67,7 +70,7 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning), hors ligne / retour réseau,
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte), hors ligne / retour réseau,
   absence de débordement horizontal (app démarrée sur :3000). Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).

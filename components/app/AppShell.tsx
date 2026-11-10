@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <AutoSync />
       <SideNav />
       <div className="min-w-0 flex-1">
-        <header className="safe-top sticky top-0 z-30 border-b border-line bg-base/90 backdrop-blur">
+        <header className="safe-top sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur">
           <div className="mx-auto flex min-h-14 max-w-[440px] items-center justify-between gap-2 px-4 md:max-w-[880px] md:px-8">
             <p className="truncate font-semibold">{trip?.name ?? "Japan Trip"}</p>
             <SyncIndicator />

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Icon } from "@/components/ui/Icon";
@@ -70,6 +71,12 @@ export function ActivityCard({ activity, place, onOpen, onToggleDone, sortable =
             className={`grid size-9 place-items-center rounded-full border ${activity.is_done ? "border-success bg-success/15 text-success" : "border-line-strong text-transparent hover:text-mute"}`}>
             <Icon name="check" size={16} />
           </button>
+          {place?.lat != null && (
+            <Link href={`/carte?lieu=${place.id}`} aria-label={`Voir « ${activity.title} » sur la carte`}
+              className="grid size-9 place-items-center rounded-full text-sakura hover:bg-sakura-soft">
+              <Icon name="map" size={16} />
+            </Link>
+          )}
           {links && (
             <a href={links.directions} target="_blank" rel="noopener noreferrer" aria-label={`Itinéraire vers « ${activity.title} » (Google Maps)`}
               className="grid size-9 place-items-center rounded-full text-night hover:bg-night-soft">

@@ -1,11 +1,263 @@
-import { UpcomingSection } from "@/components/app/UpcomingSection";
+"use client";
 
-export const metadata = { title: "Carte" };
+import { useLiveQuery } from "dexie-react-hooks";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Card, SectionTitle } from "@/components/ui/Card";
+import { Drawer } from "@/components/ui/Drawer";
+import { EmptyState, Spinner } from "@/components/ui/EmptyState";
+import { SelectField } from "@/components/ui/Field";
+import { Icon } from "@/components/ui/Icon";
+import { useToast } from "@/components/ui/Toast";
+import { useCurrentTrip } from "@/components/app/TripContext";
+import { TripMap, type MapStatus } from "@/components/features/map/TripMap";
+import { PlaceForm, initialPlaceForm } from "@/components/features/map/PlaceForm";
+import { PlaceDetails } from "@/components/features/map/PlaceDetails";
+import { SearchPanel } from "@/components/features/map/SearchPanel";
+import { getEngine } from "@/lib/sync/client";
+import { getLocalDb } from "@/lib/db/schema";
+import { activitiesOfTrip, placesOfTrip } from "@/lib/db/planning";
+import { addPlaceToPlanning, deletePlace, movePlace, savePlace, setPlaceFavorite } from "@/lib/db/places";
+import { PLACE_CATEGORIES, PLACE_META, placeMeta } from "@/lib/places";
+import { formatCoordinates } from "@/lib/geo";
+import { formatDayShort, tripDates } from "@/lib/formatters";
+import { toMessage } from "@/lib/errors/messages";
+import type { GeocodeResult } from "@/lib/geocoding";
+import type { PlaceForm as PlaceFormValues } from "@/lib/validation/place";
+import type { Place } from "@/lib/types/planning";
+
+type DrawerState = null | { kind: "details"; id: string } | { kind: "form"; id?: string; draft?: Partial<PlaceFormValues> };
+
+function MapPage() {
+  const { trip } = useCurrentTrip();
+  const router = useRouter();
+  const params = useSearchParams();
+  const toast = useToast();
+  const engine = getEngine();
+  const db = getLocalDb();
+  const dates = useMemo(() => tripDates(trip.start_date, trip.end_date), [trip.start_date, trip.end_date]);
+
+  const data = useLiveQuery(async () => {
+    const [places, activities] = await Promise.all([placesOfTrip(db, trip.id), activitiesOfTrip(db, trip.id)]);
+    return { places: [...places.values()].sort((a, b) => a.name.localeCompare(b.name, "fr")), activities };
+  }, [trip.id]);
+
+  const lieu = params.get("lieu");
+  const [selectedId, setSelectedId] = useState<string | null>(lieu);
+  const [drawer, setDrawer] = useState<DrawerState>(lieu ? { kind: "details", id: lieu } : null);
+  // La page reste montée entre deux visites (cacheComponents) : un nouveau ?lieu= venu du
+  // planning doit ouvrir la fiche, même si la carte avait déjà été affichée.
+  const [lastLieu, setLastLieu] = useState(lieu);
+  if (lieu !== lastLieu) {
+    setLastLieu(lieu);
+    if (lieu) {
+      setSelectedId(lieu);
+      setDrawer({ kind: "details", id: lieu });
+    }
+  }
+  const [categories, setCategories] = useState<Set<string>>(new Set());
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [day, setDay] = useState("");
+  const [picking, setPicking] = useState<null | "new" | string>(null);
+  const [moving, setMoving] = useState<{ id: string; lat?: number; lng?: number } | null>(null);
+  const [preview, setPreview] = useState<GeocodeResult | null>(null);
+  const [mapStatus, setMapStatus] = useState<MapStatus>("loading");
+  const close = useCallback(() => setDrawer(null), []);
+
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    const dayPlaces = day ? new Set(data.activities.filter((a) => a.date === day && a.place_id).map((a) => a.place_id!)) : null;
+    return data.places.filter((p) =>
+      (categories.size === 0 || categories.has(p.category)) && (!favoritesOnly || p.is_favorite) && (!dayPlaces || dayPlaces.has(p.id)));
+  }, [data, categories, favoritesOnly, day]);
+
+  if (!data) return <Spinner />;
+  const byId = new Map(data.places.map((p) => [p.id, p]));
+  const current = drawer?.kind === "details" ? byId.get(drawer.id) : drawer?.kind === "form" && drawer.id ? byId.get(drawer.id) : undefined;
+  const present = PLACE_CATEGORIES.filter((c) => data.places.some((p) => p.category === c));
+  const cities = trip.destinations.map((d) => d.name);
+  const saved = (msg = "Enregistré.") => toast(navigator.onLine ? msg : "Enregistré sur l'appareil, envoyé au retour du réseau.");
+  const guard = async (fn: () => Promise<unknown>, msg?: string) => {
+    try {
+      await fn();
+      if (msg) saved(msg);
+    } catch (e) {
+      toast(toMessage(e), "error");
+    }
+  };
+
+  const select = (id: string) => {
+    setSelectedId(id);
+    setDrawer({ kind: "details", id });
+    router.replace(`/carte?lieu=${id}`, { scroll: false });
+  };
+  const toggleCategory = (c: string) =>
+    setCategories((s) => {
+      const n = new Set(s);
+      if (n.has(c)) n.delete(c);
+      else n.add(c);
+      return n;
+    });
+
+  const onPick = (lat: number, lng: number) => {
+    const target = picking;
+    setPicking(null);
+    if (target === "new") setDrawer({ kind: "form", draft: { coords: formatCoordinates(lat, lng) } });
+    else if (target) {
+      const p = byId.get(target);
+      if (p) void guard(() => movePlace(engine, p, lat, lng), "Lieu placé sur la carte.");
+      setDrawer({ kind: "details", id: target });
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-2xl font-bold">Carte</h1>
+        <div className="flex gap-2">
+          <Button variant="subtle" icon="crosshair" onClick={() => { setPicking("new"); setDrawer(null); }} disabled={mapStatus !== "ready"}>
+            Placer sur la carte
+          </Button>
+          <Button icon="plus" onClick={() => setDrawer({ kind: "form" })} aria-label="Ajouter un lieu par formulaire">Ajouter</Button>
+        </div>
+      </div>
+
+      <SearchPanel onPreview={setPreview} onAdd={(r) => {
+        setPreview(r);
+        setDrawer({ kind: "form", draft: { name: r.name, category: r.category, address: r.address, city: r.city ?? "", coords: formatCoordinates(r.lat, r.lng) } });
+      }} />
+
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrer par catégorie">
+          {present.map((c) => {
+            const on = categories.has(c);
+            return (
+              <button key={c} onClick={() => toggleCategory(c)} aria-pressed={on}
+                className={`flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold ${on ? "border-transparent text-on-accent" : "border-line-strong text-dim"}`}
+                style={on ? { background: PLACE_META[c].color } : undefined}>
+                <Icon name={PLACE_META[c].icon} size={14} />{PLACE_META[c].plural}
+              </button>
+            );
+          })}
+          <button onClick={() => setFavoritesOnly((f) => !f)} aria-pressed={favoritesOnly}
+            className={`flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold ${favoritesOnly ? "border-transparent bg-sakura text-canvas" : "border-line-strong text-dim"}`}>
+            <Icon name="heart" size={14} />Favoris
+          </button>
+        </div>
+        <SelectField label="Afficher les lieux d'une journée" value={day} onChange={(e) => setDay(e.target.value)}>
+          <option value="">Toutes les journées</option>
+          {dates.map((d, i) => <option key={d} value={d}>Jour {i + 1} · {formatDayShort(d)}</option>)}
+        </SelectField>
+      </div>
+
+      {picking && (
+        <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-sakura-soft px-3 py-2 text-sm text-sakura">
+          <span>Touchez la carte à l&apos;endroit du lieu.</span>
+          <Button variant="ghost" onClick={() => setPicking(null)}>Annuler</Button>
+        </div>
+      )}
+      {moving && (
+        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-sakura-soft px-3 py-2 text-sm text-sakura">
+          <span>Faites glisser le point vers sa nouvelle position.</span>
+          <div className="flex gap-2">
+            <Button disabled={moving.lat == null} onClick={async () => {
+              const p = byId.get(moving.id);
+              if (p && moving.lat != null && moving.lng != null) await guard(() => movePlace(engine, p, moving.lat!, moving.lng!), "Position enregistrée.");
+              setMoving(null);
+            }}>Valider</Button>
+            <Button variant="ghost" onClick={() => setMoving(null)}>Annuler</Button>
+          </div>
+        </div>
+      )}
+      {mapStatus === "tiles-unavailable" && (
+        <p role="status" className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+          Fond de carte indisponible (pas de connexion). Le téléchargement des cartes pour le hors ligne arrive dans une
+          prochaine version ; vos lieux restent consultables dans la liste ci-dessous.
+        </p>
+      )}
+      {mapStatus === "unsupported" ? (
+        <p className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+          Cet appareil ne peut pas afficher la carte (WebGL indisponible). La liste des lieux reste utilisable.
+        </p>
+      ) : (
+        <div className="h-[52dvh] min-h-72 overflow-hidden rounded-2xl border border-line md:h-[62vh]">
+          <TripMap places={filtered} selectedId={selectedId} onSelect={select}
+            picking={picking !== null} onPick={onPick}
+            movingId={moving?.id ?? null} onMoved={(lat, lng) => setMoving((m) => (m ? { ...m, lat, lng } : m))}
+            preview={preview ? { lat: preview.lat, lng: preview.lng } : null} onStatus={setMapStatus} />
+        </div>
+      )}
+
+      <SectionTitle>Lieux ({filtered.length}{filtered.length !== data.places.length ? ` sur ${data.places.length}` : ""})</SectionTitle>
+      {data.places.length === 0 ? (
+        <EmptyState icon="map" title="Aucun lieu pour l'instant" action={<Button icon="plus" onClick={() => setDrawer({ kind: "form" })}>Ajouter un lieu</Button>}>
+          Recherchez un lieu, touchez la carte, ou ajoutez une adresse dans une activité du planning.
+        </EmptyState>
+      ) : filtered.length === 0 ? (
+        <Card className="text-sm text-dim">Aucun lieu ne correspond aux filtres.</Card>
+      ) : (
+        <ul className="flex flex-col gap-2" aria-label="Liste des lieux">
+          {filtered.map((p) => <PlaceRow key={p.id} place={p} selected={p.id === selectedId} onOpen={() => select(p.id)} />)}
+        </ul>
+      )}
+
+      <Drawer open={drawer !== null} onClose={close}
+        title={drawer?.kind === "details" ? (current?.name ?? "Lieu") : drawer?.kind === "form" && drawer.id ? "Modifier le lieu" : "Nouveau lieu"}>
+        {drawer?.kind === "details" && !current && <p className="text-sm text-dim">Ce lieu n&apos;existe plus.</p>}
+        {drawer?.kind === "details" && current && (
+          <PlaceDetails key={current.id} place={current} tripId={trip.id} dates={dates}
+            onEdit={() => setDrawer({ kind: "form", id: current.id })}
+            onMove={() => {
+              setDrawer(null);
+              if (current.lat == null) setPicking(current.id);
+              else setMoving({ id: current.id });
+            }}
+            onToggleFavorite={() => guard(() => setPlaceFavorite(engine, current, !current.is_favorite))}
+            onAddToPlanning={(date) => guard(() => addPlaceToPlanning(engine, db, trip.id, current, date),
+              date ? `Ajouté au ${formatDayShort(date)}.` : "Ajouté aux idées du planning.")}
+            onDelete={async () => {
+              await guard(() => deletePlace(engine, current), "Lieu supprimé.");
+              setSelectedId(null);
+              close();
+              router.replace("/carte", { scroll: false });
+            }} />
+        )}
+        {drawer?.kind === "form" && (
+          <PlaceForm key={drawer.id ?? JSON.stringify(drawer.draft ?? {})} isNew={!drawer.id} cities={cities}
+            initial={initialPlaceForm(current, drawer.draft)}
+            onSubmit={async (patch) => {
+              const fromSearch = !drawer.id && preview && patch.name === preview.name;
+              const id = await savePlace(engine, trip.id, { ...patch, ...(fromSearch ? { source: "search", source_ref: preview.sourceRef } : {}) }, current);
+              setPreview(null);
+              saved(drawer.id ? "Lieu enregistré." : "Lieu ajouté.");
+              select(id);
+            }} />
+        )}
+      </Drawer>
+    </div>
+  );
+}
+
+function PlaceRow({ place, selected, onOpen }: { place: Place; selected: boolean; onOpen: () => void }) {
+  const meta = placeMeta(place.category);
+  return (
+    <li>
+      <button onClick={onOpen} aria-label={`Ouvrir « ${place.name} »`}
+        className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-3 text-left hover:bg-elev ${selected ? "border-sakura" : "border-line"}`}>
+        <span className="grid size-9 shrink-0 place-items-center rounded-full text-white" style={{ background: meta.color }} aria-hidden="true">
+          <Icon name={meta.icon} size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold">{place.name}{place.is_favorite && <span className="ml-1 text-sakura" aria-label="favori">♥</span>}</span>
+          <span className="block truncate text-xs text-dim">{meta.label}{place.city ? ` · ${place.city}` : ""}{place.lat == null ? " · sans coordonnées" : ""}</span>
+        </span>
+        <Icon name="chevron" size={18} className="text-mute" />
+      </button>
+    </li>
+  );
+}
 
 export default function Page() {
-  return (
-    <UpcomingSection title="Carte" icon="map" phase="phase 3">
-      Carte interactive des hôtels, restaurants, activités et lieux favoris, reliée au planning.
-    </UpcomingSection>
-  );
+  return <Suspense fallback={<Spinner />}><MapPage /></Suspense>;
 }

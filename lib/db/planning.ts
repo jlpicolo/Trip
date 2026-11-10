@@ -52,7 +52,7 @@ async function keyFor(engine: SyncEngine, list: Activity[], index: number): Prom
 }
 
 /** Clé d'ordre pour placer une activité dans une journée : chronologique si horodatée, sinon en fin. */
-async function placementKey(engine: SyncEngine, db: LocalDb, tripId: string, date: string | null, startTime: string | null, excludeId?: string) {
+export async function placementKeyFor(engine: SyncEngine, db: LocalDb, tripId: string, date: string | null, startTime: string | null, excludeId?: string) {
   const list = await dayList(db, tripId, date, excludeId);
   const index = startTime ? chronologicalIndex(list, startTime) : list.length;
   return keyFor(engine, list, index);
@@ -84,7 +84,7 @@ export async function saveActivity(
 
   const moved = !existing || existing.date !== input.activity.date || existing.start_time !== input.activity.start_time;
   if (moved && (!existing || existing.date !== input.activity.date || input.activity.start_time)) {
-    patch.sort_key = await placementKey(engine, db, tripId, input.activity.date, input.activity.start_time, existing?.id);
+    patch.sort_key = await placementKeyFor(engine, db, tripId, input.activity.date, input.activity.start_time, existing?.id);
   }
 
   if (existing) {
@@ -108,7 +108,7 @@ export async function moveActivity(engine: SyncEngine, db: LocalDb, tripId: stri
     date,
     start_time: startTime,
     end_time: date ? activity.end_time : null,
-    sort_key: await placementKey(engine, db, tripId, date, startTime, activity.id),
+    sort_key: await placementKeyFor(engine, db, tripId, date, startTime, activity.id),
   });
 }
 

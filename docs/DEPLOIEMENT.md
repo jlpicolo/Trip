@@ -28,6 +28,11 @@ qu'aux scripts du propriétaire, exécutés sur son ordinateur.
 Vérification : sur le site, la page de connexion doit permettre de se connecter. Si la console du navigateur
 affiche « Variable d'environnement manquante », les variables n'étaient pas présentes lors du build.
 
+## Services externes utilisés par le navigateur
+
+- Tuiles de carte : `tiles.openfreemap.org` (aucune clé).
+- Recherche de lieux : `nominatim.openstreetmap.org` (aucune clé, 1 requête/seconde).
+
 ## Gestion des comptes (propriétaire du service)
 
 Les voyageurs se connectent avec un **nom d'utilisateur** et un mot de passe, **sans email**.

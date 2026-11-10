@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3a (planning) terminée**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 3b (carte) terminée**. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 9 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -173,7 +173,8 @@ Aucun voyageur n'a de privilège supplémentaire.
 |---|---|---|---|
 | Base, auth, fichiers | **Supabase** | oui (URL + clé publishable ; clé secrète uniquement dans les scripts du propriétaire) | demandé ; RLS + Storage privé ; connexion par nom d'utilisateur |
 | Hébergement web | **Vercel** (Hobby) | non | natif Next.js ; alternative : Netlify, Cloudflare Pages |
-| Fond de carte | **PMTiles auto-hébergés** (extraits OSM de la build Protomaps) sur **Cloudflare R2** | non | seul moyen propre et conforme de télécharger des zones hors ligne. Les serveurs `tile.openstreetmap.org` l'interdisent ; les fournisseurs commerciaux (MapTiler…) restreignent le cache hors ligne |
+| Fond de carte (en ligne) | **OpenFreeMap** (tuiles vectorielles OpenStreetMap, styles `liberty` clair et `dark`) | non | gratuit, sans clé ni inscription, sans limite de consultation ; attribution OSM affichée |
+| Fond de carte (hors ligne, phase 5) | **PMTiles** : extraits OSM des 6 villes (build Protomaps), hébergés par nos soins | non | seul moyen propre et conforme de télécharger des zones hors ligne. Les serveurs `tile.openstreetmap.org` l'interdisent ; les fournisseurs commerciaux restreignent le cache |
 | Recherche de lieux | **Nominatim** (OSM) | non | gratuit, 1 req/s max, pas d'autocomplétion → recherche sur validation. Les adresses japonaises sont mal couvertes : saisie manuelle des coordonnées / collage d'un lien Google Maps en secours |
 | Itinéraires | **Liens externes** Google Maps / Apple Maps | non | pas d'API de calcul d'itinéraire : on n'invente pas de temps de trajet |
 | Taux EUR/JPY | **Frankfurter** (données BCE) | non | gratuit, sans clé. **Taux de référence quotidien** (jours ouvrés), affiché avec sa date : jamais présenté comme « temps réel ». Taux manuel possible |
@@ -257,7 +258,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **1. Analyse** ✅ | inspection, architecture, schéma SQL + RLS + RPC de synchro, tests SQL | migration appliquée sur le projet Supabase réel ; 52 assertions vertes en local **et** sur Supabase |
 | **2. Fondations** ✅ | dépendances, client Supabase, auth (inscription, connexion, déconnexion, mot de passe oublié), profil (pseudo, couleur, avatar), création de groupe + voyage, invitations, design system (sombre/clair), navigation mobile, gestion d'erreurs, couche Dexie + moteur de synchro (base nécessaire à toutes les sections) | 4 comptes réels sur un projet Supabase de test, même voyage visible sur 2 navigateurs, build OK |
 | **3a. Planning** ✅ | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
-| **3b. Carte** | MapLibre + PMTiles en ligne, catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
+| **3b. Carte** ✅ | MapLibre + tuiles en ligne (OpenFreeMap), catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
 | **3c. Transports & documents** | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
 | **3d. Hébergements** | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
 | **3e. Carnet** | catégories, priorités, photos, conversion en activité sans ressaisie | E2E conversion |
@@ -385,7 +386,43 @@ mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonn
    → rendu via portail dans `<body>` ; les animations d'apparition ne laissent plus de `transform` actif.
 4. Débordement horizontal à 390 px (sélecteur de vue) ; symbole « ¥ » au lieu de « JPY ».
 
-## 11. Décisions prises (détails secondaires)
+## 11. Réalisé en phase 3b — Carte
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Catégories de lieux, couleurs, icônes, catégorie devinée depuis OSM | `lib/places.ts` | tests unitaires |
+| Validation d'un lieu | `lib/validation/place.ts` | tests unitaires |
+| Recherche Nominatim (1 req/s, pays JP, erreurs claires) | `lib/geocoding.ts` | tests unitaires (fetch simulé) + E2E réel |
+| Écritures : créer, modifier, favori, déplacer, supprimer, ajouter au planning | `lib/db/places.ts` | tests unitaires avec faux serveur |
+| Carte MapLibre, marqueurs HTML accessibles, placement, déplacement, aperçu | `components/features/map/TripMap.tsx` | E2E `map.e2e.mjs` (10 étapes) |
+| Page Carte : recherche, filtres catégorie/favoris/journée, liste, fiche, formulaire | `app/(app)/carte`, `components/features/map/*` | E2E |
+| Lien planning → carte (`/carte?lieu=…`) et carte → planning | `ActivityCard.tsx`, `PlaceDetails.tsx` | E2E |
+
+### Décisions de la phase 3b
+
+- **Marqueurs = boutons HTML** (pas des symboles WebGL) : atteignables au clavier, nommés pour les
+  lecteurs d'écran (« Fushimi Inari (Monument), favori »), testables.
+- **Worker MapLibre** copié dans `public/maplibre/` au build (`scripts/copy-maplibre-worker.mjs`, hooks
+  `predev`/`prebuild`) et chargé par `setWorkerUrl` : indépendant du bundler, cachable par le service worker.
+  Exclu du `proxy.ts` et du lint.
+- **Placement** : bouton « Placer sur la carte » puis appui (pas de création à chaque appui accidentel).
+  **Déplacement** : marqueur rendu déplaçable, puis « Valider » / « Annuler ».
+- **Lieu sans coordonnées** : accepté (listé, signalé « non affiché sur la carte »), plaçable ensuite.
+- **Supprimer un lieu** conserve les activités du planning (elles perdent seulement leur lieu).
+- **Hors ligne** : si le style ou les tuiles sont injoignables, un message le dit clairement et la liste
+  des lieux (données locales) reste entièrement utilisable. Le téléchargement de zones viendra en phase 5.
+- **Recherche** : en ligne uniquement, à la validation (pas d'autocomplétion, conformément à la politique
+  Nominatim), limitée au Japon, attribution OSM affichée.
+
+### Bugs trouvés par les tests et corrigés
+
+1. **Lien planning → carte sans effet** si la carte avait déjà été visitée (page conservée par
+   `cacheComponents`) : l'état réagit désormais au paramètre `?lieu=`.
+2. **Titre de tiroir illisible** : le jeton de couleur `base` entrait en conflit avec la classe de taille
+   `text-base`. Renommé `canvas` ; contrôle de contraste ajouté au test.
+3. Worker MapLibre redirigé vers `/connexion` par `proxy.ts`.
+
+## 12. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

@@ -89,3 +89,16 @@ export async function assertNoHorizontalScroll(page, label) {
   const { sw, iw } = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, iw: window.innerWidth }));
   if (sw > iw) throw new Error(`Débordement horizontal (${label}) : ${sw}px de contenu pour ${iw}px d'écran`);
 }
+
+/** Réessaie une vérification côté serveur le temps que la synchro (différée de ~2 s) passe. */
+export async function eventually(check, { timeout = 20_000, interval = 500 } = {}) {
+  const t0 = Date.now();
+  for (;;) {
+    try {
+      return await check();
+    } catch (e) {
+      if (Date.now() - t0 > timeout) throw e;
+      await new Promise((r) => setTimeout(r, interval));
+    }
+  }
+}

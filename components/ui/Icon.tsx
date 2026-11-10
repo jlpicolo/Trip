@@ -1,7 +1,7 @@
 import type { SVGProps } from "react";
 
 // Icônes SVG inline (pas de bibliothèque) : traits 1.8, 24×24, couleur héritée.
-const paths = {
+export const ICON_PATHS = {
   home: "M3 10.5 12 3l9 7.5M5 9v11h5v-6h4v6h5V9",
   calendar: "M4 6h16v14H4zM4 10h16M8 3v4M16 3v4",
   map: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14",
@@ -40,16 +40,20 @@ const paths = {
   list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   link: "M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1",
+  plane: "M10.5 19.5 12 21l1.5-1.5V15l7 2.5v-2L13.5 11V5.5a1.5 1.5 0 0 0-3 0V11L3.5 15.5v2l7-2.5v4.5z",
+  heart: "M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z",
+  search: "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5",
+  crosshair: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 3v4M12 17v4M3 12h4M17 12h4",
   walk: "M13 4a2 2 0 1 0 0-.01M9 21l2-6 3 3v5M10 9l-3 3M10 9l4 1 2 3M10 9l-1 6",
 } as const;
 
-export type IconName = keyof typeof paths;
+export type IconName = keyof typeof ICON_PATHS;
 
 export function Icon({ name, size = 22, ...rest }: { name: IconName; size?: number } & SVGProps<SVGSVGElement>) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false" {...rest}>
-      <path d={paths[name]} />
+      <path d={ICON_PATHS[name]} />
     </svg>
   );
 }

@@ -96,6 +96,7 @@ export function ActivityForm({ trip, dates, initial, existing, onSubmit, onDelet
           hint="Ex. 34.9671, 135.7727 — ou collez un lien Google Maps" />
         {links && (
           <div className="flex flex-wrap gap-3 text-sm">
+            <a href={links.directions} target="_blank" rel="noopener noreferrer" className="font-semibold text-night">Itinéraire (Google)</a>
             <a href={links.view} target="_blank" rel="noopener noreferrer" className="font-semibold text-night">Voir dans Google Maps</a>
             <a href={links.apple} target="_blank" rel="noopener noreferrer" className="font-semibold text-night">Plans (Apple)</a>
           </div>

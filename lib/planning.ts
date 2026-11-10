@@ -2,14 +2,14 @@ import type { IconName } from "@/components/ui/Icon";
 import type { Activity, ActivityCategory, TravelMode } from "@/lib/types/planning";
 
 export const CATEGORY_META: Record<ActivityCategory, { label: string; icon: IconName; color: string }> = {
-  visit: { label: "Visite", icon: "torii", color: "var(--vermillion)" },
-  restaurant: { label: "Restaurant", icon: "food", color: "#f08a4b" },
+  visit: { label: "Visite", icon: "torii", color: "var(--coral)" },
+  restaurant: { label: "Restaurant", icon: "food", color: "var(--sun)" },
   transport: { label: "Transport", icon: "train", color: "var(--night)" },
-  hotel: { label: "Hôtel", icon: "bed", color: "#b88cfa" },
+  hotel: { label: "Hôtel", icon: "bed", color: "#b39dff" },
   shopping: { label: "Shopping", icon: "bag", color: "var(--sakura)" },
-  activity: { label: "Activité", icon: "star", color: "var(--warning)" },
-  free_time: { label: "Temps libre", icon: "sun", color: "var(--success)" },
-  idea: { label: "Idée / suggestion", icon: "bulb", color: "#4cc3d9" },
+  activity: { label: "Activité", icon: "star", color: "var(--teal)" },
+  free_time: { label: "Temps libre", icon: "sun", color: "#8be38f" },
+  idea: { label: "Idée", icon: "bulb", color: "#5fd0ff" },
   other: { label: "Autre", icon: "more", color: "var(--text-dim)" },
 };
 

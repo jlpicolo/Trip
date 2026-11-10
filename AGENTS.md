@@ -56,6 +56,10 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
   revenir à un rendu en place (un ancêtre avec `transform` casse `position: fixed`).
 - Couleur du fond de page : jeton `canvas` (`bg-canvas`). Ne jamais nommer un jeton de couleur comme une
   taille Tailwind (`base`, `sm`, `lg`…) : `text-base` deviendrait aussi une couleur.
+- Règles CSS globales (éléments HTML) **dans `@layer base`** : hors couche, elles battent toutes les classes
+  utilitaires Tailwind (bug corrigé : couleur des boutons ignorée).
+- Typographie : titres `h1`/`h2` en Shippori Mincho (`font-display`), texte en Zen Kaku Gothic (`font-sans`),
+  polices embarquées par `next/font`. Palette « Nuit de Tokyo » : jetons `coral`, `sakura`, `night`, `teal`, `sun`.
 - Animations CSS d'apparition en `animation-fill-mode: backwards` (jamais `both`/`forwards` avec transform).
 - Champs numériques : `inputMode="decimal"` + saisie tamponnée (validation au blur).
 - `AGENTS.md` et `docs/ARCHITECTURE.md` sont mis à jour en même temps que le code, phase par phase.

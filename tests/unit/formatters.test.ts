@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { daysBetween, formatDateRange, formatMoney, todayIn, tripDates, tripPhase } from "@/lib/formatters";
-import { describeActivity } from "@/lib/activity";
+import { describeActivity, describeGroup, groupActivity } from "@/lib/activity";
+import { cityKanji, sameCity } from "@/lib/japan";
 import { safeNext } from "@/lib/navigation";
 import { tripSchema } from "@/lib/validation/schemas";
 import type { ActivityLogEntry } from "@/lib/types/trip";
@@ -73,5 +74,32 @@ describe("sécurité et validation", () => {
     expect(tripSchema.safeParse({ ...base, end_date: "2027-03-01" }).success).toBe(false);
     expect(tripSchema.safeParse({ ...base, base_currency: "euro" }).success).toBe(false);
     expect(tripSchema.safeParse({ ...base, name: "  " }).success).toBe(false);
+  });
+});
+
+describe("historique regroupé", () => {
+  const e = (id: number, actor: string, min: number, o: Partial<ActivityLogEntry> = {}): ActivityLogEntry => ({
+    id, trip_id: "t", actor_id: actor, action: "create", entity_type: "activities", entity_id: `e${id}`, label: `A${id}`, details: {},
+    created_at: new Date(Date.UTC(2027, 0, 1, 10, 60 - min)).toISOString(), ...o,
+  });
+  it("regroupe les ajouts successifs d'une même personne", () => {
+    const groups = groupActivity([e(6, "a", 0), e(5, "a", 1), e(4, "a", 2), e(3, "b", 3), e(2, "a", 4, { action: "update" })]);
+    expect(groups.map((g) => g.entries.length)).toEqual([3, 1, 1]);
+    expect(describeGroup(groups[0], "Aiko")).toBe("Aiko a ajouté 3 activités.");
+    expect(describeGroup(groups[0], "Vous", true)).toBe("Vous avez ajouté 3 activités.");
+    expect(describeGroup(groups[1], "Bastien")).toBe("Bastien a ajouté une activité « A3 ».");
+  });
+  it("ne regroupe pas au-delà d'une heure d'écart", () => {
+    const groups = groupActivity([e(2, "a", 0), { ...e(1, "a", 0), created_at: "2027-01-01T07:00:00.000Z" }]);
+    expect(groups).toHaveLength(2);
+  });
+});
+
+describe("villes japonaises", () => {
+  it("kanji des villes connues, rien d'inventé sinon", () => {
+    expect(cityKanji("Kyoto")).toBe("京都");
+    expect(cityKanji("Tōkyō")).toBe("東京");
+    expect(cityKanji("Paris")).toBeNull();
+    expect(sameCity("kyôto", "Kyoto")).toBe(true);
   });
 });

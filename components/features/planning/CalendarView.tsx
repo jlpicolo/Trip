@@ -36,7 +36,7 @@ export function CalendarView({ data, selected, today, onSelect }: {
                   <button key={d} disabled={!active} onClick={() => onSelect(d)} aria-pressed={isSel}
                     aria-label={`${formatDate(d, { weekday: "long", day: "numeric", month: "long" })} : ${items.length} activité(s)${day?.is_free ? ", journée libre" : ""}`}
                     className={`flex aspect-square min-h-11 flex-col items-center justify-center gap-1 rounded-xl text-sm transition
-                      ${!active ? "text-mute/50" : isSel ? "bg-vermillion text-on-accent" : "bg-card hover:bg-elev"}
+                      ${!active ? "text-mute/50" : isSel ? "bg-coral text-on-accent" : "bg-card hover:bg-elev"}
                       ${d === today && !isSel ? "ring-2 ring-sakura" : ""}`}>
                     <span className="font-semibold">{Number(d.slice(8))}</span>
                     {active && (

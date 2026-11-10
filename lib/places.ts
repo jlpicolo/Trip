@@ -4,14 +4,15 @@ export const PLACE_CATEGORIES = ["hotel", "restaurant", "activity", "monument", 
 export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
 
 export const PLACE_META: Record<PlaceCategory, { label: string; plural: string; icon: IconName; color: string }> = {
-  hotel: { label: "Hôtel", plural: "Hôtels", icon: "bed", color: "#b88cfa" },
-  restaurant: { label: "Restaurant", plural: "Restaurants", icon: "food", color: "#f08a4b" },
-  activity: { label: "Activité", plural: "Activités", icon: "star", color: "#eab245" },
-  monument: { label: "Monument", plural: "Monuments", icon: "torii", color: "#e8452c" },
-  station: { label: "Gare", plural: "Gares", icon: "train", color: "#7e93d6" },
-  airport: { label: "Aéroport", plural: "Aéroports", icon: "plane", color: "#4cc3d9" },
-  shop: { label: "Magasin", plural: "Magasins", icon: "bag", color: "#f4a6c0" },
-  other: { label: "Autre", plural: "Autres", icon: "pin", color: "#8a8a8f" },
+  // Couleurs fixes (pas de variables de thème) : les marqueurs sont posés sur la carte, quel que soit le thème.
+  hotel: { label: "Hôtel", plural: "Hôtels", icon: "bed", color: "#9d86f5" },
+  restaurant: { label: "Restaurant", plural: "Restaurants", icon: "food", color: "#f2b632" },
+  activity: { label: "Activité", plural: "Activités", icon: "star", color: "#1fbfa3" },
+  monument: { label: "Monument", plural: "Monuments", icon: "torii", color: "#f25c5c" },
+  station: { label: "Gare", plural: "Gares", icon: "train", color: "#6f8cf2" },
+  airport: { label: "Aéroport", plural: "Aéroports", icon: "plane", color: "#3fb7e8" },
+  shop: { label: "Magasin", plural: "Magasins", icon: "bag", color: "#f28cab" },
+  other: { label: "Autre", plural: "Autres", icon: "pin", color: "#7d86a8" },
 };
 
 export const placeMeta = (c: string) => PLACE_META[c as PlaceCategory] ?? PLACE_META.other;

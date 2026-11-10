@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { Card, SectionTitle } from "@/components/ui/Card";
 import { Drawer } from "@/components/ui/Drawer";
 import { EmptyState, Spinner } from "@/components/ui/EmptyState";
-import { SelectField } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
 import { useToast } from "@/components/ui/Toast";
 import { useCurrentTrip } from "@/components/app/TripContext";
@@ -113,81 +112,86 @@ function MapPage() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-bold">Carte</h1>
-        <div className="flex gap-2">
-          <Button variant="subtle" icon="crosshair" onClick={() => { setPicking("new"); setDrawer(null); }} disabled={mapStatus !== "ready"}>
-            Placer sur la carte
-          </Button>
-          <Button icon="plus" onClick={() => setDrawer({ kind: "form" })} aria-label="Ajouter un lieu par formulaire">Ajouter</Button>
-        </div>
-      </div>
-
-      <SearchPanel onPreview={setPreview} onAdd={(r) => {
-        setPreview(r);
-        setDrawer({ kind: "form", draft: { name: r.name, category: r.category, address: r.address, city: r.city ?? "", coords: formatCoordinates(r.lat, r.lng) } });
-      }} />
-
-      <div className="flex flex-col gap-2">
-        <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filtrer par catégorie">
-          {present.map((c) => {
-            const on = categories.has(c);
-            return (
-              <button key={c} onClick={() => toggleCategory(c)} aria-pressed={on}
-                className={`flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold ${on ? "border-transparent text-on-accent" : "border-line-strong text-dim"}`}
-                style={on ? { background: PLACE_META[c].color } : undefined}>
-                <Icon name={PLACE_META[c].icon} size={14} />{PLACE_META[c].plural}
-              </button>
-            );
-          })}
-          <button onClick={() => setFavoritesOnly((f) => !f)} aria-pressed={favoritesOnly}
-            className={`flex min-h-9 items-center gap-1 rounded-full border px-3 text-xs font-semibold ${favoritesOnly ? "border-transparent bg-sakura text-canvas" : "border-line-strong text-dim"}`}>
-            <Icon name="heart" size={14} />Favoris
-          </button>
-        </div>
-        <SelectField label="Afficher les lieux d'une journée" value={day} onChange={(e) => setDay(e.target.value)}>
-          <option value="">Toutes les journées</option>
-          {dates.map((d, i) => <option key={d} value={d}>Jour {i + 1} · {formatDayShort(d)}</option>)}
-        </SelectField>
-      </div>
-
-      {picking && (
-        <div role="status" className="flex items-center justify-between gap-2 rounded-xl bg-sakura-soft px-3 py-2 text-sm text-sakura">
-          <span>Touchez la carte à l&apos;endroit du lieu.</span>
-          <Button variant="ghost" onClick={() => setPicking(null)}>Annuler</Button>
-        </div>
-      )}
-      {moving && (
-        <div role="status" className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-sakura-soft px-3 py-2 text-sm text-sakura">
-          <span>Faites glisser le point vers sa nouvelle position.</span>
-          <div className="flex gap-2">
-            <Button disabled={moving.lat == null} onClick={async () => {
-              const p = byId.get(moving.id);
-              if (p && moving.lat != null && moving.lng != null) await guard(() => movePlace(engine, p, moving.lat!, moving.lng!), "Position enregistrée.");
-              setMoving(null);
-            }}>Valider</Button>
-            <Button variant="ghost" onClick={() => setMoving(null)}>Annuler</Button>
-          </div>
-        </div>
-      )}
-      {mapStatus === "tiles-unavailable" && (
-        <p role="status" className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
-          Fond de carte indisponible (pas de connexion). Le téléchargement des cartes pour le hors ligne arrive dans une
-          prochaine version ; vos lieux restent consultables dans la liste ci-dessous.
-        </p>
-      )}
-      {mapStatus === "unsupported" ? (
-        <p className="rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
-          Cet appareil ne peut pas afficher la carte (WebGL indisponible). La liste des lieux reste utilisable.
-        </p>
-      ) : (
-        <div className="h-[52dvh] min-h-72 overflow-hidden rounded-2xl border border-line md:h-[62vh]">
+      <h1 className="sr-only">Carte</h1>
+      {/* Carte de bord à bord sur téléphone ; recherche et filtres flottants par-dessus. */}
+      <div className="relative -mx-4 -mt-3 h-[calc(100dvh-56px-64px-env(safe-area-inset-top)-env(safe-area-inset-bottom))] min-h-80 overflow-hidden border-b border-line md:mx-0 md:mt-0 md:h-[68vh] md:rounded-2xl md:border">
+        {mapStatus === "unsupported" ? (
+          <p className="m-4 mt-40 rounded-xl border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-warning">
+            Cet appareil ne peut pas afficher la carte (WebGL indisponible). La liste des lieux reste utilisable ci-dessous.
+          </p>
+        ) : (
           <TripMap places={filtered} selectedId={selectedId} onSelect={select}
             picking={picking !== null} onPick={onPick}
             movingId={moving?.id ?? null} onMoved={(lat, lng) => setMoving((m) => (m ? { ...m, lat, lng } : m))}
             preview={preview ? { lat: preview.lat, lng: preview.lng } : null} onStatus={setMapStatus} />
+        )}
+
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 p-3">
+          <div className="pointer-events-auto rounded-2xl bg-card/95 p-1.5 shadow-[var(--shadow)] backdrop-blur">
+            <SearchPanel onPreview={setPreview} onAdd={(r) => {
+              setPreview(r);
+              setDrawer({ kind: "form", draft: { name: r.name, category: r.category, address: r.address, city: r.city ?? "", coords: formatCoordinates(r.lat, r.lng) } });
+            }} />
+          </div>
+          <div className="pointer-events-auto -mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none]" role="group" aria-label="Filtrer les lieux">
+            <select value={day} onChange={(e) => setDay(e.target.value)} aria-label="Afficher les lieux d'une journée"
+              className={`min-h-9 shrink-0 rounded-full border px-3 text-xs font-semibold shadow ${day ? "border-transparent bg-teal text-on-accent" : "border-line-strong bg-card/95 text-ink"}`}>
+              <option value="">Toutes les journées</option>
+              {dates.map((d, i) => <option key={d} value={d}>Jour {i + 1} · {formatDayShort(d)}</option>)}
+            </select>
+            <button onClick={() => setFavoritesOnly((f) => !f)} aria-pressed={favoritesOnly}
+              className={`flex min-h-9 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-semibold shadow ${favoritesOnly ? "border-transparent bg-sakura text-on-accent" : "border-line-strong bg-card/95 text-ink"}`}>
+              <Icon name="heart" size={14} />Favoris
+            </button>
+            {present.map((c) => {
+              const on = categories.has(c);
+              return (
+                <button key={c} onClick={() => toggleCategory(c)} aria-pressed={on}
+                  className={`flex min-h-9 shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-semibold shadow ${on ? "border-transparent text-[#0b1020]" : "border-line-strong bg-card/95 text-ink"}`}
+                  style={on ? { background: PLACE_META[c].color } : undefined}>
+                  <Icon name={PLACE_META[c].icon} size={14} />{PLACE_META[c].plural}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2 p-3 pb-9">
+          {picking && (
+            <div role="status" className="pointer-events-auto flex items-center justify-between gap-2 rounded-xl bg-card/95 px-3 py-2 text-sm text-sakura shadow-[var(--shadow)]">
+              <span>Touchez la carte à l&apos;endroit du lieu.</span>
+              <Button variant="ghost" onClick={() => setPicking(null)}>Annuler</Button>
+            </div>
+          )}
+          {moving && (
+            <div role="status" className="pointer-events-auto flex flex-wrap items-center justify-between gap-2 rounded-xl bg-card/95 px-3 py-2 text-sm text-sakura shadow-[var(--shadow)]">
+              <span>Faites glisser le point vers sa nouvelle position.</span>
+              <div className="flex gap-2">
+                <Button disabled={moving.lat == null} onClick={async () => {
+                  const p = byId.get(moving.id);
+                  if (p && moving.lat != null && moving.lng != null) await guard(() => movePlace(engine, p, moving.lat!, moving.lng!), "Position enregistrée.");
+                  setMoving(null);
+                }}>Valider</Button>
+                <Button variant="ghost" onClick={() => setMoving(null)}>Annuler</Button>
+              </div>
+            </div>
+          )}
+          {mapStatus === "tiles-unavailable" && (
+            <p role="status" className="pointer-events-auto rounded-xl border border-warning/40 bg-card/95 px-3 py-2 text-sm text-warning shadow-[var(--shadow)]">
+              Fond de carte indisponible (pas de connexion). Le téléchargement des cartes pour le hors ligne arrive dans une
+              prochaine version ; vos lieux restent consultables dans la liste sous la carte.
+            </p>
+          )}
+          {!picking && !moving && (
+            <div className="pointer-events-auto flex justify-end gap-2">
+              <Button variant="subtle" icon="crosshair" className="shadow-[var(--shadow)]" onClick={() => { setPicking("new"); setDrawer(null); }} disabled={mapStatus !== "ready"}>
+                Placer sur la carte
+              </Button>
+              <Button icon="plus" className="shadow-[var(--shadow)]" onClick={() => setDrawer({ kind: "form" })} aria-label="Ajouter un lieu par formulaire">Ajouter</Button>
+            </div>
+          )}
+        </div>
+      </div>
 
       <SectionTitle>Lieux ({filtered.length}{filtered.length !== data.places.length ? ` sur ${data.places.length}` : ""})</SectionTitle>
       {data.places.length === 0 ? (

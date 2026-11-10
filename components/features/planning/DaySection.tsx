@@ -4,7 +4,6 @@ import {
   DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent,
 } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { Badge } from "@/components/ui/Badge";
 import { Icon } from "@/components/ui/Icon";
 import { formatDayLong } from "@/lib/formatters";
 import type { Activity, Place, TripDay } from "@/lib/types/planning";
@@ -57,6 +56,10 @@ export function ActivityList({ items, places, onOpen, onToggleDone, onReorder, l
   );
 }
 
+/**
+ * Une étape du parcours : pastille sur le tracé, en-tête de journée, puis activités.
+ * Une journée vide tient sur une ligne.
+ */
 export function DaySection({ date, dayNumber, isToday, day, items, places, onOpen, onToggleDone, onReorder, onAdd, onEditDay }: {
   date: string;
   dayNumber: number;
@@ -71,36 +74,50 @@ export function DaySection({ date, dayNumber, isToday, day, items, places, onOpe
   onEditDay: () => void;
 }) {
   const title = formatDayLong(date);
+  const empty = items.length === 0;
   return (
-    <section id={`jour-${date}`} aria-labelledby={`titre-${date}`} className="scroll-mt-20">
-      <div className="mb-2 flex items-end justify-between gap-2">
+    <section id={`jour-${date}`} data-day={date} aria-labelledby={`titre-${date}`} className="relative scroll-mt-32 pl-8">
+      <span aria-hidden="true"
+        className={`absolute left-[3px] top-1.5 size-[18px] rounded-full border-[3px] bg-canvas ${isToday ? "border-coral shadow-[0_0_0_5px_var(--coral-soft)]" : empty && !day?.is_free ? "border-line-strong" : "border-sakura"}`} />
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-mute">
-            Jour {dayNumber}{isToday && <span className="ml-2 text-vermillion">· Aujourd&apos;hui</span>}
-          </p>
-          <h2 id={`titre-${date}`} className="truncate text-lg font-bold">
-            {title}{day?.city && <span className="font-normal text-dim"> · {day.city}</span>}
+          <h2 id={`titre-${date}`} className="text-lg font-extrabold leading-tight">
+            {title}{day?.city && <span className="font-sans text-base font-medium text-dim"> · {day.city}</span>}
           </h2>
-          {day?.title && <p className="truncate text-sm text-dim">{day.title}</p>}
+          <p className="text-xs text-mute">
+            Jour {dayNumber}{isToday && <span className="ml-1.5 font-bold text-coral">· Aujourd&apos;hui</span>}
+            {day?.title && <span className="text-dim"> · {day.title}</span>}
+          </p>
         </div>
         <button onClick={onEditDay} aria-label={`Note et ville du ${title}`}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-dim hover:bg-elev"><Icon name="edit" size={18} /></button>
+          className="grid size-10 shrink-0 place-items-center rounded-full text-dim hover:bg-elev"><Icon name="edit" size={18} /></button>
       </div>
       {(day?.is_free || day?.notes) && (
-        <div className="mb-2 flex flex-col gap-1 rounded-xl bg-elev px-3 py-2 text-sm">
-          {day.is_free && <Badge tone="success">Journée libre</Badge>}
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-teal/40 bg-teal-soft px-3 py-2 text-sm">
+          {day.is_free && <span className="rounded-full bg-teal px-2 py-0.5 text-xs font-bold text-on-accent">Journée libre</span>}
           {day.notes && <p className="whitespace-pre-line text-dim">{day.notes}</p>}
         </div>
       )}
-      {items.length > 0 ? (
-        <ActivityList items={items} places={places} onOpen={onOpen} onToggleDone={onToggleDone} onReorder={onReorder}
-          label={`Activités du ${title}`} />
+      {empty ? (
+        <div className="mt-1 flex items-center justify-between gap-2 text-sm">
+          <span className="text-mute">{day?.is_free ? "" : "Rien de prévu"}</span>
+          <button onClick={onAdd} aria-label={`Ajouter au ${title.toLowerCase()}`}
+            className="flex min-h-10 items-center gap-1 rounded-full px-3 font-semibold text-sakura hover:bg-sakura-soft">
+            <Icon name="plus" size={16} /> Ajouter
+          </button>
+        </div>
       ) : (
-        !day?.is_free && <p className="rounded-xl border border-dashed border-line-strong px-3 py-3 text-sm text-mute">Rien de prévu, et c&apos;est très bien aussi.</p>
+        <>
+          <div className="mt-2">
+            <ActivityList items={items} places={places} onOpen={onOpen} onToggleDone={onToggleDone} onReorder={onReorder}
+              label={`Activités du ${title}`} />
+          </div>
+          <button onClick={onAdd} aria-label={`Ajouter au ${title.toLowerCase()}`}
+            className="mt-1 flex min-h-10 items-center gap-1 rounded-full px-3 text-sm font-semibold text-sakura hover:bg-sakura-soft">
+            <Icon name="plus" size={16} /> Ajouter
+          </button>
+        </>
       )}
-      <button onClick={onAdd} className="mt-2 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-sakura hover:bg-sakura-soft">
-        <Icon name="plus" size={18} /> Ajouter au {formatDayLong(date).toLowerCase()}
-      </button>
     </section>
   );
 }

@@ -28,7 +28,7 @@ export function DayForm({ day, cities, onSubmit }: {
       <datalist id="villes-du-voyage">{cities.map((c) => <option key={c} value={c} />)}</datalist>
       <TextAreaField label="Notes du jour" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={10000} />
       <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-line-strong px-3">
-        <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} className="size-5 accent-[var(--vermillion)]" />
+        <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} className="size-5 accent-[var(--coral)]" />
         <span className="text-sm">Journée libre (aucun programme prévu)</span>
       </label>
       <Button type="submit" loading={saving} block>Enregistrer la journée</Button>

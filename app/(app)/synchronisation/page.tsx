@@ -162,7 +162,7 @@ function ConflictCard({ conflict: c, authorName }: { conflict: ConflictRecord; a
         <fieldset key={f} className="flex flex-col gap-2">
           <legend className="mb-1 font-medium">{FIELD_LABEL[f] ?? f}</legend>
           {(["local", "server"] as const).map((side) => (
-            <label key={side} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 ${choices[f] === side ? "border-vermillion bg-vermillion-soft" : "border-line-strong"}`}>
+            <label key={side} className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 ${choices[f] === side ? "border-coral bg-coral-soft" : "border-line-strong"}`}>
               <input type="radio" name={`${c.id}-${f}`} checked={choices[f] === side} onChange={() => setChoices((x) => ({ ...x, [f]: side }))} />
               <span className="text-dim">{side === "local" ? "Ma version :" : `Version de ${authorName} :`}</span>
               <span className="truncate">{show(side === "local" ? c.local_patch[f] : c.server_row[f])}</span>

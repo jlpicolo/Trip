@@ -18,7 +18,7 @@ export function AppearanceSection() {
         {OPTIONS.map((o) => (
           <button key={o.value} role="radio" aria-checked={pref === o.value}
             onClick={() => { setPref(o.value); applyTheme(o.value); }}
-            className={`min-h-11 rounded-xl border text-sm font-semibold ${pref === o.value ? "border-vermillion bg-vermillion-soft text-vermillion" : "border-line-strong text-dim"}`}>
+            className={`min-h-11 rounded-xl border text-sm font-semibold ${pref === o.value ? "border-coral bg-coral-soft text-coral" : "border-line-strong text-dim"}`}>
             {o.label}
           </button>
         ))}

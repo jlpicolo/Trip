@@ -3,7 +3,7 @@
  * recherche Nominatim — une seule requête). Prérequis : app démarrée. Lancement : npm run test:e2e
  */
 import assert from "node:assert/strict";
-import { BASE, SHOTS, admin, assertNoHorizontalScroll, cleanup, createTraveler, createTrip, eventually, launch, login, stepper } from "./helpers.mjs";
+import { BASE, SHOTS, admin, assertContrast, assertNoHorizontalScroll, cleanup, createTraveler, createTrip, eventually, launch, login, stepper } from "./helpers.mjs";
 
 const users = [];
 let trip;
@@ -34,7 +34,8 @@ try {
     await a.goto(`${BASE}/carte`);
     await marker(a, "Fushimi Inari").waitFor({ timeout: 30_000 });
     await a.locator(".maplibregl-canvas").waitFor();
-    await a.getByText(/OpenStreetMap/).first().waitFor();
+    // Mention OpenStreetMap présente, repliée derrière le bouton « i ».
+    await a.locator(".maplibregl-ctrl-attrib").getByText(/OpenStreetMap/).first().waitFor({ state: "attached" });
     assert.deepEqual(await listNames(a), ["Fushimi Inari"]);
   });
 
@@ -98,12 +99,13 @@ try {
     await a.getByRole("button", { name: "Ouvrir « Nishiki Market »" }).click();
     const dlg = a.getByRole("dialog");
     await dlg.getByText("Pas encore dans le planning.").waitFor();
+    await dlg.getByRole("button", { name: "Planifier" }).click();
     await dlg.getByLabel("Ajouter au planning").selectOption("2027-03-15");
     await dlg.getByRole("button", { name: "Ajouter", exact: true }).click();
     await dlg.getByRole("link", { name: /lun\. 15 mars.*Nishiki Market/ }).waitFor();
     await dlg.getByRole("link", { name: /lun\. 15 mars/ }).click();
     await a.waitForURL(/\/planning#jour-2027-03-15/);
-    await a.locator("#jour-2027-03-15").getByText("Nishiki Market").waitFor();
+    await a.locator("#jour-2027-03-15").getByText("Nishiki Market", { exact: true }).waitFor();
   });
 
   await step("planning → carte : l'activité ouvre son lieu sur la carte", async () => {
@@ -117,12 +119,15 @@ try {
       return { title: getComputedStyle(title).color, panel: getComputedStyle(d).backgroundColor };
     });
     assert.notEqual(contrast.title, contrast.panel, "le titre du tiroir doit être lisible");
-    assert.notEqual(contrast.title, "rgb(10, 10, 15)", "le titre ne doit pas prendre la couleur du fond de page");
+    assert.notEqual(contrast.title, "rgb(11, 16, 32)", "le titre ne doit pas prendre la couleur du fond de page");
+    await assertContrast(a.getByRole("dialog").locator("h2"), 4.5, "titre du tiroir");
+    await assertContrast(a.getByRole("dialog").getByRole("link", { name: "Itinéraire (Google)" }), 4.5, "bouton principal (sombre)");
     await assertNoHorizontalScroll(a, "carte, mobile");
     await a.screenshot({ path: `${SHOTS}/20-carte-fiche.png` });
   });
 
   await step("déplacer un point en le faisant glisser, puis valider", async () => {
+    await a.getByRole("dialog").getByRole("button", { name: "Plus de détails" }).click();
     await a.getByRole("dialog").getByRole("button", { name: "Déplacer le point" }).click();
     await a.getByText("Faites glisser le point vers sa nouvelle position.").waitFor();
     const before = (await dbPlaces()).find((p) => p.name === "Fushimi Inari");
@@ -143,6 +148,7 @@ try {
   await step("suppression d'un lieu : l'activité du planning est conservée", async () => {
     await a.getByRole("button", { name: "Ouvrir « Nishiki Market »" }).click();
     const dlg = a.getByRole("dialog");
+    await dlg.getByRole("button", { name: "Plus de détails" }).click();
     await dlg.getByRole("button", { name: "Supprimer le lieu" }).click();
     await dlg.getByRole("button", { name: "Supprimer", exact: true }).click();
     await a.getByText("Lieu supprimé.").waitFor();

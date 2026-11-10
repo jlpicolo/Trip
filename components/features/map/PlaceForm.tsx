@@ -74,7 +74,7 @@ export function PlaceForm({ initial, isNew, cities, onSubmit }: {
       <TextAreaField label="Notes" value={v.notes} onChange={set("notes")} maxLength={10000} />
       <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border border-line-strong px-3">
         <input type="checkbox" checked={v.is_favorite} onChange={(e) => setV((x) => ({ ...x, is_favorite: e.target.checked }))}
-          className="size-5 accent-[var(--vermillion)]" />
+          className="size-5 accent-[var(--coral)]" />
         <span className="text-sm">Lieu favori</span>
       </label>
       <Button type="submit" loading={saving} block>{isNew ? "Ajouter le lieu" : "Enregistrer"}</Button>

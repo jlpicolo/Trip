@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Shippori_Mincho_B1, Zen_Kaku_Gothic_New } from "next/font/google";
 import { ToastProvider } from "@/components/ui/Toast";
 import { SessionProvider } from "@/hooks/useSession";
 import { themeBootScript } from "@/lib/theme";
 import "./globals.css";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Polices embarquées par next/font (servies par l'app, donc disponibles hors ligne).
+// Seuls les glyphes latins sont proposés : les kanji utilisent les polices japonaises du système.
+const title = Shippori_Mincho_B1({ variable: "--font-title", subsets: ["latin"], weight: ["600", "800"], display: "swap" });
+const body = Zen_Kaku_Gothic_New({ variable: "--font-body", subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Japan Trip", template: "%s · Japan Trip" },
@@ -21,14 +23,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0a0a0f" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b1020" },
     { media: "(prefers-color-scheme: light)", color: "#f7f4ef" },
   ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" data-theme="dark" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="fr" data-theme="dark" suppressHydrationWarning className={`${title.variable} ${body.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>

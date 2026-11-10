@@ -5,7 +5,7 @@ import { Icon, type IconName } from "./Icon";
 type Variant = "primary" | "ghost" | "danger" | "subtle";
 
 const styles: Record<Variant, string> = {
-  primary: "bg-vermillion text-on-accent hover:brightness-110 active:brightness-95",
+  primary: "bg-coral text-on-accent hover:brightness-110 active:brightness-95",
   ghost: "border border-line-strong bg-transparent text-ink hover:bg-elev",
   danger: "border border-error/40 bg-transparent text-error hover:bg-error/10",
   subtle: "bg-elev text-ink hover:brightness-110",

@@ -56,11 +56,15 @@ try {
       await dlg.getByLabel("Budget estimé (facultatif)").fill("0");
     });
     const card = day(a, "2027-03-14").locator("li[data-activity-id]").first();
-    await card.getByText("07:00–09:30").waitFor();
+    await card.getByText("07:00", { exact: true }).waitFor();
+    await card.getByText("→ 09:30").waitFor();
     await card.getByText("≈ 25 min en train").waitFor();
     await card.getByText("· estimation").waitFor();
-    const href = await card.getByRole("link", { name: /Itinéraire vers/ }).getAttribute("href");
+    await card.getByRole("link", { name: "Voir « Fushimi Inari » sur la carte" }).waitFor();
+    await card.getByRole("button", { name: "Ouvrir « Fushimi Inari »" }).click();
+    const href = await a.getByRole("dialog").getByRole("link", { name: "Itinéraire (Google)" }).getAttribute("href");
     assert.equal(href, "https://www.google.com/maps/dir/?api=1&destination=34.9671%2C135.7727");
+    await a.getByRole("dialog").getByRole("button", { name: "Fermer" }).first().click();
   });
 
   await step("validation : fin avant début refusée avec un message clair", async () => {
@@ -220,6 +224,18 @@ try {
     await a.getByText("Fushimi Inari", { exact: true }).waitFor();
     await a.getByText("Bruno a ajouté une activité « Ramen Ichiran ».").waitFor({ timeout: 20_000 });
     await a.getByText(/dimanche 14 mars · 07:00/).waitFor();
+  });
+
+  await step("bandeau des journées : saut direct à une journée du parcours", async () => {
+    await a.goto(`${BASE}/planning`);
+    await day(a, "2027-03-14").locator("li[data-activity-id]").first().waitFor();
+    await a.getByRole("navigation", { name: "Aller à une journée" }).getByRole("button", { name: /^Jour 18,/ }).click();
+    await a.waitForFunction(() => {
+      const r = document.getElementById("jour-2027-03-26")?.getBoundingClientRect();
+      return !!r && r.top >= 0 && r.top < window.innerHeight / 2;
+    });
+    await a.getByRole("navigation", { name: "Aller à une journée" }).getByRole("button", { name: /^Jour 18,/, pressed: undefined })
+      .and(a.locator('[aria-current="true"]')).waitFor();
   });
 
   await step("vue calendrier : sélection d'un jour", async () => {

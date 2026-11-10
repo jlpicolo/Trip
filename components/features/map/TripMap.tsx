@@ -5,9 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import type { Map as MlMap, Marker } from "maplibre-gl";
 import { ICON_PATHS } from "@/components/ui/Icon";
 import { placeMeta } from "@/lib/places";
+import { clusterPoints } from "@/lib/map-cluster";
 import type { Place } from "@/lib/types/planning";
 
 export type MapStatus = "loading" | "ready" | "tiles-unavailable" | "unsupported";
+
+
 
 const STYLE = {
   light: "https://tiles.openfreemap.org/styles/liberty",
@@ -48,6 +51,8 @@ export function TripMap(props: TripMapProps) {
   const map = useRef<MlMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
   const previewMarker = useRef<Marker | null>(null);
+  const clusterMarkers = useRef<Marker[]>([]);
+  const [viewTick, setViewTick] = useState(0);
   const lib = useRef<typeof import("maplibre-gl") | null>(null);
   const latest = useRef(props);
   const fitted = useRef(false);
@@ -86,9 +91,12 @@ export function TripMap(props: TripMapProps) {
       m.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
       m.on("load", () => {
         if (cancelled) return;
+        // Mention OpenStreetMap obligatoire, mais repliée (bouton « i ») pour ne pas masquer la carte.
+        container.current?.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show");
         setReady(true);
         latest.current.onStatus("ready");
       });
+      m.on("moveend", () => setViewTick((t) => t + 1));
       m.on("error", (e) => {
         const err = e as { sourceId?: string; error?: { message?: string } };
         // Style ou tuiles injoignables (hors ligne) : on le dit, la liste des lieux reste utilisable.
@@ -105,6 +113,7 @@ export function TripMap(props: TripMapProps) {
       map.current?.remove();
       map.current = null;
       markerSet.clear();
+      clusterMarkers.current = [];
     };
   }, []);
 
@@ -152,9 +161,37 @@ export function TripMap(props: TripMapProps) {
       fitted.current = true;
       const bounds = new maplibre.LngLatBounds();
       for (const p of props.places) if (p.lat != null && p.lng != null) bounds.extend([p.lng, p.lat]);
-      m.fitBounds(bounds, { padding: 60, maxZoom: 14, duration: 0 });
+      // Marges : la recherche et les filtres flottent en haut, les boutons d'ajout en bas.
+      m.fitBounds(bounds, { padding: { top: 150, bottom: 110, left: 50, right: 60 }, maxZoom: 14, duration: 0 });
     }
-  }, [props.places, props.selectedId, props.movingId, ready]);
+
+    // Regroupement des marqueurs trop proches à ce niveau de zoom.
+    for (const c of clusterMarkers.current) c.remove();
+    clusterMarkers.current = [];
+    const pts = props.places
+      .filter((p) => p.lat != null && p.lng != null)
+      .map((p) => ({ id: p.id, lng: p.lng!, lat: p.lat!, ...m.project([p.lng!, p.lat!]) }));
+    const alone = new Set([props.selectedId, props.movingId].filter(Boolean) as string[]);
+    for (const group of clusterPoints(pts, alone)) {
+      const single = group.length === 1;
+      for (const p of group) markers.current.get(p.id)?.getElement().classList.toggle("is-clustered", !single);
+      if (single) continue;
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "jt-marker jt-cluster";
+      el.textContent = String(group.length);
+      el.setAttribute("aria-label", `${group.length} lieux regroupés, zoomer pour les voir`);
+      el.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const b = new maplibre.LngLatBounds();
+        for (const p of group) b.extend([p.lng, p.lat]);
+        m.fitBounds(b, { padding: 90, maxZoom: Math.min(18, m.getZoom() + 4), duration: 500 });
+      });
+      const lng = group.reduce((s, p) => s + p.lng, 0) / group.length;
+      const lat = group.reduce((s, p) => s + p.lat, 0) / group.length;
+      clusterMarkers.current.push(new maplibre.Marker({ element: el, anchor: "center" }).setLngLat([lng, lat]).addTo(m));
+    }
+  }, [props.places, props.selectedId, props.movingId, ready, viewTick]);
 
   // Centrer sur le lieu sélectionné.
   useEffect(() => {

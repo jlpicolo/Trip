@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3b (carte) terminée**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 3b (carte) terminée + refonte design « Nuit de Tokyo »**. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 9 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -289,24 +289,53 @@ dépendent ; le développer après coup obligerait à réécrire chaque écran.
 | Égalité totale des droits | un membre peut tout modifier/supprimer | suppression logique (restauration possible) + historique des modifications |
 | Next.js 16 très récent | APIs modifiées (ex. `proxy.ts`) | lecture de la documentation embarquée `node_modules/next/dist/docs` avant chaque usage |
 
-## 8. Design system (base One for All + identité japonaise)
+## 8. Design system « Nuit de Tokyo » (revue design de novembre 2026)
 
-| Jeton | Sombre (défaut) | Clair | Origine |
+Choisi par les voyageurs après deux planches de revue : **typographie de la piste A, couleurs de la piste B**,
+thème sombre par défaut, illustration discrète, éléments jamais rétrécis, référence Polarsteps.
+
+| Jeton | Sombre (défaut) | Clair | Usage |
 |---|---|---|---|
-| `--color-bg-base` | `#0a0a0f` | `#f7f4ef` (papier washi) | One for All |
-| `--color-bg-card` | `#141418` | `#ffffff` | One for All |
-| `--color-bg-elev` | `#1b1b21` | `#efeae2` | One for All |
-| `--color-border` | `rgba(255,255,255,.06)` | `rgba(20,20,30,.08)` | One for All |
-| `--color-text` / `-dim` | `#e8e8ea` / `#8a8a8f` | `#1a1a22` / `#5c5c66` | One for All |
-| `--color-vermillion` (accent principal) | `#e8452c` | `#c8371f` | Japan Trip |
-| `--color-sakura` | `#f4a6c0` | `#d9638a` | Japan Trip |
-| `--color-night` (bleu nuit) | `#2b3a67` / `#7e93d6` | `#2b3a67` | Japan Trip |
-| succès / erreur / alerte | `#5fe0a0` / `#f07052` / `#eab245` | assombris pour le contraste | One for All |
+| `canvas` / `card` / `elev` | `#0b1020` / `#141b31` / `#1c2541` | `#f7f4ef` / `#ffffff` / `#efeae2` | fond de page, cartes, surfaces surélevées |
+| `ink` / `dim` / `mute` | `#f3f5ff` / `#a9b1cf` / `#737ca3` | `#161a2e` / `#555b78` / `#858aa3` | textes |
+| `coral` (accent principal) | `#ff6b6b` | `#d6403f` | actions, « maintenant », journée active |
+| `sakura` | `#ffb3c7` | `#b8436c` | liens, ajouts, regroupements |
+| `teal` | `#3ee0c3` | `#0b7f6c` | journées libres, dates, succès |
+| `sun` | `#ffd166` | `#9a6a00` | J-x, estimations |
+| `night` | `#8fa6ff` | `#34479a` | transports, liens secondaires |
+| `on-accent` | `#0b1020` | `#ffffff` | texte posé sur le corail (contraste ≥ 4,5 : 1 vérifié par les tests) |
 
-Mise en page héritée de One for All : cartes arrondies 12–16 px, bord subtil, padding 16 px, espacement
-10–12 px, contenu décalé de 80 px au-dessus de la barre de navigation inférieure, `safe-area-inset-*`,
-`-webkit-tap-highlight-color: transparent`. Adaptation Japan Trip : colonne de 440 px sur mobile, mais
-mise en page élargie sur tablette/ordinateur (navigation latérale, deux colonnes), et thème clair.
+- **Typographie** : titres `h1`/`h2` en **Shippori Mincho B1** (`font-display`), texte en **Zen Kaku Gothic New**
+  (`font-sans`), toutes deux embarquées par `next/font` (disponibles hors ligne ; les kanji utilisent les
+  polices japonaises du système).
+- **Dégradé de parcours** `--route` (corail → sakura → turquoise) et **fond de carte d'embarquement** `--hero`.
+- **Illustration discrète** : kanji 旅, soleil levant et pétales sur la carte d'embarquement, tampons de villes
+  en kanji (dictionnaire fixe `lib/japan.ts`, jamais deviné).
+- **Couleurs de catégorie** : `lib/planning.ts` (activités, via jetons) et `lib/places.ts` (marqueurs : couleurs
+  fixes, icône bleu nuit lisible sur toutes).
+- **Navigation** : Accueil · Planning · Carte · **Billets** · Plus (Budget dans « Plus »).
+- Mise en page : cartes arrondies 14–24 px, zones tactiles ≥ 44 px (40 px pour les icônes secondaires),
+  `safe-area-inset-*`, `scroll-padding` sous l'en-tête et au-dessus de la barre du bas.
+
+### Écrans refondus
+
+- **Accueil « carte d'embarquement »** : première → dernière destination, J-x, jours, villes, escales en tampons
+  (dates déduites des journées du planning), prochaine étape en grand, historique regroupé
+  (`groupActivity` : « Aiko a ajouté 6 activités »).
+- **Planning « parcours continu »** : tracé en dégradé reliant toutes les journées, pastille horaire colorée par
+  catégorie (poignée de glisser-déposer), journée vide sur une ligne, **bandeau des journées collant** qui suit le
+  défilement (`IntersectionObserver`) et permet de sauter à une journée.
+- **Carte plein écran** : recherche et filtres flottants (défilement horizontal), marqueurs regroupés à l'écran
+  (`lib/map-cluster.ts`), mention OSM repliée, **fiche en deux temps** (aperçu : jours prévus, itinéraire,
+  planifier ; « Plus de détails » : le reste).
+
+### Bugs corrigés pendant la refonte
+
+1. **Règles CSS globales hors couche** : elles écrasaient toutes les classes Tailwind (couleur de texte des
+   boutons ignorée, sous-titres en mauvaise police). Désormais dans `@layer base`.
+2. Débordement des destinations dans Paramètres (largeur minimale du `<fieldset>`).
+3. Dates du sélecteur natif au format du téléphone : rappel en toutes lettres sous le champ.
+4. Mention OpenStreetMap masquant le bas de la carte ; boutons de zoom sous la recherche ; marqueurs superposés.
 
 ## 9. Réalisé en phase 2
 

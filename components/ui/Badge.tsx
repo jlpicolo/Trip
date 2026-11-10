@@ -1,8 +1,8 @@
-type Tone = "neutral" | "vermillion" | "sakura" | "night" | "success" | "warning" | "error";
+type Tone = "neutral" | "coral" | "sakura" | "night" | "success" | "warning" | "error";
 
 const tones: Record<Tone, string> = {
   neutral: "bg-elev text-dim",
-  vermillion: "bg-vermillion-soft text-vermillion",
+  coral: "bg-coral-soft text-coral",
   sakura: "bg-sakura-soft text-sakura",
   night: "bg-night-soft text-night",
   success: "bg-success/15 text-success",

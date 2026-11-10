@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Drawer } from "@/components/ui/Drawer";
 import { Spinner } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
@@ -13,6 +13,7 @@ import { ActivityCard } from "@/components/features/planning/ActivityCard";
 import { ActivityForm, initialActivityForm } from "@/components/features/planning/ActivityForm";
 import { DayForm } from "@/components/features/planning/DayForm";
 import { CalendarView } from "@/components/features/planning/CalendarView";
+import { DayStrip } from "@/components/features/planning/DayStrip";
 import { getEngine } from "@/lib/sync/client";
 import { getLocalDb } from "@/lib/db/schema";
 import { deleteActivity, reorderActivity, saveActivity, saveDay, setActivityDone } from "@/lib/db/planning";
@@ -43,7 +44,30 @@ export default function PlanningPage() {
   const [view, setView] = useState<View>(readView);
   const [selected, setSelected] = useState<string | null>(null);
   const [drawer, setDrawer] = useState<DrawerState>(null);
+  const [visibleDay, setVisibleDay] = useState<string | null>(null);
   const close = useCallback(() => setDrawer(null), []);
+  const ready = data !== undefined;
+
+  // Journée affichée : la première section dont le haut a passé le bandeau collant.
+  useEffect(() => {
+    if (!ready || view !== "timeline") return;
+    const sections = [...document.querySelectorAll<HTMLElement>("section[data-day]")];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setVisibleDay((visible[0].target as HTMLElement).dataset.day ?? null);
+      },
+      { rootMargin: "-140px 0px -55% 0px" },
+    );
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [ready, view]);
+
+  const jumpTo = (date: string) => {
+    setVisibleDay(date);
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.getElementById(`jour-${date}`)?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+  };
 
   const changeView = (v: View) => {
     setView(v);
@@ -85,7 +109,7 @@ export default function PlanningPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Planning</h1>
         <div role="tablist" aria-label="Affichage du planning" className="flex max-w-full rounded-xl bg-elev p-1">
-          {([["timeline", "Chronologie", "list"], ["calendar", "Calendrier", "grid"]] as const).map(([v, label, icon]) => (
+          {([["timeline", "Parcours", "list"], ["calendar", "Calendrier", "grid"]] as const).map(([v, label, icon]) => (
             <button key={v} role="tab" aria-selected={view === v} onClick={() => changeView(v)}
               className={`flex min-h-10 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold sm:px-3 ${view === v ? "bg-card text-ink shadow" : "text-dim"}`}>
               <Icon name={icon} size={16} />{label}
@@ -126,13 +150,13 @@ export default function PlanningPage() {
       )}
 
       {view === "timeline" ? (
-        <div className="flex flex-col gap-8">
-          {data.dates.includes(today) && (
-            <a href={`#jour-${today}`} className="self-start rounded-full bg-vermillion-soft px-3 py-2 text-sm font-semibold text-vermillion">
-              Aller à aujourd&apos;hui
-            </a>
-          )}
-          {data.dates.map(daySection)}
+        <div className="flex flex-col gap-4">
+          <DayStrip data={data} active={visibleDay ?? (data.dates.includes(today) ? today : data.dates[0])} today={today} onJump={jumpTo} />
+          {/* Parcours continu : un tracé relie toutes les journées. */}
+          <div className="relative flex flex-col gap-7 pb-4">
+            <span aria-hidden="true" className="absolute bottom-2 left-[10px] top-3 w-1 rounded-full opacity-80" style={{ background: "var(--route)" }} />
+            {data.dates.map(daySection)}
+          </div>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">

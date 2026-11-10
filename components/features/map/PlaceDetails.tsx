@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { SelectField } from "@/components/ui/Field";
@@ -31,6 +31,13 @@ export function PlaceDetails({ place, tripId, dates, onEdit, onMove, onToggleFav
   const [planDate, setPlanDate] = useState(dates[0] ?? "");
   const [adding, setAdding] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Fiche en deux temps : un aperçu court, puis tous les détails à la demande.
+  const [expanded, setExpanded] = useState(false);
+  const planRef = useRef<HTMLElement>(null);
+  const openPlanning = () => {
+    setExpanded(true);
+    requestAnimationFrame(() => planRef.current?.scrollIntoView({ block: "center" }));
+  };
 
   return (
     <div className="flex flex-col gap-4">
@@ -45,6 +52,43 @@ export function PlaceDetails({ place, tripId, dates, onEdit, onMove, onToggleFav
         </button>
       </div>
 
+      {/* Aperçu */}
+      {place.address && <p className="-mt-2 text-sm text-dim">{place.address}</p>}
+      {linked?.length ? (
+        <ul className="flex flex-col gap-1 text-sm" aria-label="Dans le planning">
+          {linked.map((a) => (
+            <li key={a.id}>
+              <Link href={a.date ? `/planning#jour-${a.date}` : "/planning"} className="flex min-h-11 items-center gap-2 rounded-xl bg-elev px-3 hover:brightness-110">
+                <Icon name="calendar" size={16} className="text-teal" />
+                <span className="flex-1">{a.date ? formatDayShort(a.date) : "Idée non planifiée"}{a.start_time ? ` · ${hm(a.start_time)}` : ""}</span>
+                <span className="truncate text-dim">{a.title}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-mute">Pas encore dans le planning.</p>
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        {links ? (
+          <a href={links.directions} target="_blank" rel="noopener noreferrer"
+            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-coral text-sm font-semibold text-on-accent">
+            <Icon name="pin" size={16} /> Itinéraire (Google)
+          </a>
+        ) : (
+          <Button variant="subtle" icon="crosshair" onClick={onMove}>Placer sur la carte</Button>
+        )}
+        <Button variant="subtle" icon="calendar" onClick={openPlanning}>Planifier</Button>
+      </div>
+      <button onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}
+        className="flex min-h-11 items-center justify-center gap-1 rounded-xl text-sm font-semibold text-dim hover:bg-elev">
+        {expanded ? "Moins de détails" : "Plus de détails"}
+        <Icon name="chevron" size={16} className={expanded ? "-rotate-90" : "rotate-90"} />
+      </button>
+
+      {expanded && (
+      <div className="flex flex-col gap-4 border-t border-line pt-4">
+
       {(place.address || place.address_local || place.lat != null) && (
         <dl className="grid gap-1 text-sm">
           {place.address && <><dt className="text-mute">Adresse</dt><dd>{place.address}</dd></>}
@@ -56,53 +100,23 @@ export function PlaceDetails({ place, tripId, dates, onEdit, onMove, onToggleFav
       {place.description && <p className="whitespace-pre-line text-sm">{place.description}</p>}
       {place.notes && <p className="whitespace-pre-line rounded-xl bg-elev px-3 py-2 text-sm text-dim">{place.notes}</p>}
       {place.url && <a href={place.url} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-night">Ouvrir le lien</a>}
+      {links && <a href={links.apple} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-night">Ouvrir dans Plans (Apple)</a>}
 
-      {links && (
-        <div className="grid grid-cols-2 gap-2">
-          <a href={links.directions} target="_blank" rel="noopener noreferrer"
-            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-night-soft text-sm font-semibold text-night">
-            <Icon name="pin" size={16} /> Itinéraire (Google)
-          </a>
-          <a href={links.apple} target="_blank" rel="noopener noreferrer"
-            className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line-strong text-sm font-semibold">
-            Plans (Apple)
-          </a>
-        </div>
-      )}
-
-      <section aria-labelledby="planning-du-lieu" className="flex flex-col gap-2">
-        <h3 id="planning-du-lieu" className="text-sm font-semibold text-dim">Dans le planning</h3>
-        {linked?.length ? (
-          <ul className="flex flex-col gap-1 text-sm">
-            {linked.map((a) => (
-              <li key={a.id}>
-                <Link href={a.date ? `/planning#jour-${a.date}` : "/planning"} className="flex min-h-11 items-center gap-2 rounded-xl bg-elev px-3 hover:brightness-110">
-                  <Icon name="calendar" size={16} className="text-night" />
-                  <span className="flex-1">{a.date ? formatDayShort(a.date) : "Idée non planifiée"}{a.start_time ? ` · ${hm(a.start_time)}` : ""}</span>
-                  <span className="truncate text-dim">{a.title}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-mute">Pas encore dans le planning.</p>
-        )}
-        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-          <SelectField label="Ajouter au planning" value={planDate} onChange={(e) => setPlanDate(e.target.value)}>
-            <option value="">Comme idée (sans date)</option>
-            {dates.map((d, i) => <option key={d} value={d}>Jour {i + 1} · {formatDayShort(d)}</option>)}
-          </SelectField>
-          <Button variant="subtle" icon="plus" loading={adding} onClick={async () => {
-            setAdding(true);
-            await onAddToPlanning(planDate || null);
-            setAdding(false);
-          }}>Ajouter</Button>
-        </div>
+      <section ref={planRef} aria-label="Planification du lieu" className="grid grid-cols-[1fr_auto] items-end gap-2">
+        <SelectField label="Ajouter au planning" value={planDate} onChange={(e) => setPlanDate(e.target.value)}>
+          <option value="">Comme idée (sans date)</option>
+          {dates.map((d, i) => <option key={d} value={d}>Jour {i + 1} · {formatDayShort(d)}</option>)}
+        </SelectField>
+        <Button variant="subtle" icon="plus" loading={adding} onClick={async () => {
+          setAdding(true);
+          await onAddToPlanning(planDate || null);
+          setAdding(false);
+        }}>Ajouter</Button>
       </section>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className={`grid gap-2 ${place.lat != null ? "grid-cols-2" : ""}`}>
         <Button variant="ghost" icon="edit" onClick={onEdit}>Modifier</Button>
-        <Button variant="ghost" icon="crosshair" onClick={onMove}>{place.lat == null ? "Placer sur la carte" : "Déplacer le point"}</Button>
+        {place.lat != null && <Button variant="ghost" icon="crosshair" onClick={onMove}>Déplacer le point</Button>}
       </div>
       {confirmDelete ? (
         <div role="alert" className="flex flex-col gap-2 rounded-xl border border-error/40 bg-error/10 p-3 text-sm">
@@ -114,6 +128,8 @@ export function PlaceDetails({ place, tripId, dates, onEdit, onMove, onToggleFav
         </div>
       ) : (
         <Button variant="danger" icon="trash" onClick={() => setConfirmDelete(true)}>Supprimer le lieu</Button>
+      )}
+      </div>
       )}
     </div>
   );

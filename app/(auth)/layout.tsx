@@ -6,7 +6,7 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       <header className="seigaiha relative overflow-hidden border-b border-line px-6 pb-8 pt-10">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-canvas" />
         <div className="relative mx-auto flex max-w-[400px] items-center gap-3">
-          <div className="grid size-12 place-items-center rounded-2xl bg-vermillion text-on-accent shadow-[var(--shadow)]">
+          <div className="grid size-12 place-items-center rounded-2xl bg-coral text-on-accent shadow-[var(--shadow)]">
             <Icon name="torii" size={28} />
           </div>
           <div>

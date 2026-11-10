@@ -9,6 +9,7 @@ import { createRequire } from "node:module";
 import { createClient } from "@supabase/supabase-js";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { assertContrast } from "./helpers.mjs";
 import { usernameToEmail } from "../../scripts/lib/username.mjs";
 
 // Playwright n'est pas une dépendance du projet (navigateur fourni par l'environnement de test).
@@ -175,6 +176,7 @@ try {
     await page.goto(`${BASE}/parametres`);
     await page.getByRole("radio", { name: "Clair" }).click();
     assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "light");
+    await assertContrast(page.getByRole("button", { name: "Enregistrer le voyage" }), 4.5, "bouton principal (clair)");
     await page.goto(`${BASE}/accueil`);
     await page.getByRole("heading", { name: "Japon 2027" }).waitFor({ timeout: 20_000 }).catch(async (e) => {
       await page.screenshot({ path: `${SHOTS}/echec-ordinateur.png` });

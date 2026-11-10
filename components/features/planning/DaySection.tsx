@@ -9,6 +9,8 @@ import { Icon } from "@/components/ui/Icon";
 import { formatDayLong } from "@/lib/formatters";
 import { TRANSPORT_META, transportTitle } from "@/lib/tickets";
 import type { Transport } from "@/lib/types/tickets";
+import { stayEventsFor } from "@/lib/stays";
+import type { Accommodation } from "@/lib/types/stays";
 import type { Activity, Place, TripDay } from "@/lib/types/planning";
 import { ActivityCard } from "./ActivityCard";
 
@@ -63,13 +65,14 @@ export function ActivityList({ items, places, onOpen, onToggleDone, onReorder, l
  * Une étape du parcours : pastille sur le tracé, en-tête de journée, puis activités.
  * Une journée vide tient sur une ligne.
  */
-export function DaySection({ date, dayNumber, isToday, day, items, transports = [], places, onOpen, onToggleDone, onReorder, onAdd, onEditDay }: {
+export function DaySection({ date, dayNumber, isToday, day, items, transports = [], stays = [], places, onOpen, onToggleDone, onReorder, onAdd, onEditDay }: {
   date: string;
   dayNumber: number;
   isToday: boolean;
   day?: TripDay;
   items: Activity[];
   transports?: Transport[];
+  stays?: Accommodation[];
   places: Map<string, Place>;
   onOpen: (a: Activity) => void;
   onToggleDone: (a: Activity) => void;
@@ -79,6 +82,8 @@ export function DaySection({ date, dayNumber, isToday, day, items, transports = 
 }) {
   const title = formatDayLong(date);
   const empty = items.length === 0;
+  const stayEvents = stayEventsFor(stays, date);
+  const STAY_LABEL = { check_in: "Arrivée", night: "Nuit", check_out: "Départ" } as const;
   return (
     <section id={`jour-${date}`} data-day={date} aria-labelledby={`titre-${date}`} className="relative scroll-mt-32 pl-8">
       <span aria-hidden="true"
@@ -116,9 +121,27 @@ export function DaySection({ date, dayNumber, isToday, day, items, transports = 
           ))}
         </ul>
       )}
+      {stayEvents.length > 0 && (
+        <ul className="mt-2 flex flex-col gap-1" aria-label={`Hébergements du ${title}`}>
+          {stayEvents.map(({ stay, kind }) => {
+            const time = kind === "check_in" ? stay.check_in_time : kind === "check_out" ? stay.check_out_time : null;
+            return (
+              <li key={`${stay.id}-${kind}`}>
+                <Link href={`/hebergements?sejour=${stay.id}`}
+                  className={`flex min-h-10 items-center gap-2 rounded-xl px-3 text-sm ${kind === "night" ? "text-mute hover:bg-elev" : "border border-teal/30 bg-teal-soft"}`}>
+                  <Icon name="bed" size={16} className="shrink-0 text-teal" />
+                  <span className="font-semibold">{STAY_LABEL[kind]}</span>
+                  <span className="min-w-0 flex-1 truncate">{stay.name}</span>
+                  {time && <span className="tabular-nums text-dim">{kind === "check_in" ? "dès" : "avant"} {time.slice(0, 5)}</span>}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {empty ? (
         <div className="mt-1 flex items-center justify-between gap-2 text-sm">
-          <span className="text-mute">{day?.is_free || transports.length > 0 ? "" : "Rien de prévu"}</span>
+          <span className="text-mute">{day?.is_free || transports.length > 0 || stayEvents.some((e) => e.kind !== "night") ? "" : "Rien de prévu"}</span>
           <button onClick={onAdd} aria-label={`Ajouter au ${title.toLowerCase()}`}
             className="flex min-h-10 items-center gap-1 rounded-full px-3 font-semibold text-sakura hover:bg-sakura-soft">
             <Icon name="plus" size={16} /> Ajouter

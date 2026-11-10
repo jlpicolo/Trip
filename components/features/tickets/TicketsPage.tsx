@@ -190,6 +190,7 @@ function Tickets() {
         {drawer?.kind === "doc" && currentDoc && (
           <DocumentDetails doc={currentDoc} state={fileState(currentDoc, data.local, data.pending)} travelers={travelers}
             transport={currentDoc.transport_id ? byId.get(currentDoc.transport_id) : undefined}
+            stay={data.stays.find((h) => h.id === currentDoc.accommodation_id)}
             pendingError={data.pending.get(currentDoc.id)}
             onEdit={() => setDrawer({ kind: "doc-form", id: currentDoc.id })}
             onDelete={async () => {
@@ -201,7 +202,7 @@ function Tickets() {
             onOpenTransport={(id) => setDrawer({ kind: "transport", id })} />
         )}
         {drawer?.kind === "doc-form" && (
-          <DocumentForm key={drawer.id ?? "new"} trip={trip} travelers={travelers} transports={data.transports} isNew={!drawer.id}
+          <DocumentForm key={drawer.id ?? "new"} trip={trip} travelers={travelers} transports={data.transports} stays={data.stays} isNew={!drawer.id}
             initial={initialDocumentForm(currentDoc, drawer.id ? undefined : {
               transport_id: drawer.transportId ?? "", date: drawer.date ?? "",
               category: drawer.transportId ? (byId.get(drawer.transportId)?.kind === "plane" ? "flight" : "train") : "confirmation",

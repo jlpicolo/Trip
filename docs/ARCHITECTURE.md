@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3c (billets : transports & documents) terminée**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 3d (hébergements) terminée**. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 10 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -260,7 +260,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **3a. Planning** ✅ | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
 | **3b. Carte** ✅ | MapLibre + tuiles en ligne (OpenFreeMap), catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
 | **3c. Transports & documents** ✅ | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
-| **3d. Hébergements** | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
+| **3d. Hébergements** ✅ | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
 | **3e. Carnet** | catégories, priorités, photos, conversion en activité sans ressaisie | E2E conversion |
 | **3f. Dashboard** | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
 | **4. Budget** | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
@@ -494,7 +494,30 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
 2. Libellé « Lien » ambigu entre le type de document et le champ d'adresse (lecteurs d'écran) : champ renommé
    « Adresse du lien ».
 
-## 13. Décisions prises (détails secondaires)
+## 13. Réalisé en phase 3d — Hébergements
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Nuits, nuits couvertes, nuits sans hébergement, chevauchements, événements d'une journée | `lib/stays.ts` | tests unitaires |
+| Validation (dates dans le voyage, au moins une nuit, voyageurs, téléphone, email, GPS / lien Maps) | `lib/validation/accommodation.ts` | tests unitaires |
+| Écritures : hébergement + lieu « Hôtel » sur la carte, suppression qui conserve documents et lieu | `lib/db/stays.ts` | tests unitaires avec faux serveur |
+| Page Hébergements, fiche, confirmations (réutilise les documents de la phase 3c) | `app/(app)/hebergements`, `components/features/stays/*` | E2E `stays.e2e.mjs` (8 étapes, 2 voyageurs) |
+| Arrivées, nuits et départs dans les journées du planning | `DaySection.tsx`, `usePlanning.ts` | E2E |
+
+### Décisions de la phase 3d
+
+- **Nuits** : la nuit du jour J est couverte si arrivée ≤ J < départ. Le nombre de nuits est calculé sur l'appareil
+  (affichage immédiat, hors ligne) et par le serveur (colonne générée `nights`, jamais envoyée par le client).
+- **Contrôle honnête de la couverture** : « N nuits réservées sur M », plages de nuits sans hébergement et nuits
+  couvertes par plusieurs hébergements sont **signalées, pas bloquées** (le groupe peut se séparer).
+- **Carte** : l'adresse ou les coordonnées d'un hébergement créent/mettent à jour un lieu de catégorie « Hôtel »
+  (même principe que les activités). Les retirer détache le lieu sans le supprimer.
+- **Adresse en japonais** affichée en grand « à montrer au chauffeur de taxi » ; téléphone et email cliquables.
+- **Confirmations** : documents de la phase 3c avec `accommodation_id` (fichier, lien ou code), donc hors ligne
+  dans les mêmes conditions ; un lien mène de Billets à l'hébergement et inversement.
+- **Planning** : changement d'hôtel affiché dans l'ordre réel (départ puis arrivée), nuits intermédiaires discrètes.
+
+## 14. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

@@ -12,7 +12,7 @@
     "test:db:remote": "bash scripts/test-db-remote.sh",
     "test": "vitest run --config vitest.config.mts",
     "test:integration": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 vitest run --config vitest.integration.config.mts",
-    "test:e2e": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 sh -c 'node tests/e2e/collaboration.e2e.mjs && node tests/e2e/planning.e2e.mjs && node tests/e2e/map.e2e.mjs && node tests/e2e/tickets.e2e.mjs'",
+    "test:e2e": "NODE_USE_ENV_PROXY=1 NODE_NO_WARNINGS=1 sh -c 'node tests/e2e/collaboration.e2e.mjs && node tests/e2e/planning.e2e.mjs && node tests/e2e/map.e2e.mjs && node tests/e2e/tickets.e2e.mjs && node tests/e2e/stays.e2e.mjs'",
     "db:push:remote": "bash scripts/db-push-remote.sh",
     "travelers": "node scripts/travelers.mjs",
     "predev": "node scripts/copy-vendor-assets.mjs",

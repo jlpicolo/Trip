@@ -78,7 +78,7 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets), hors ligne / retour réseau,
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements), hors ligne / retour réseau,
   absence de débordement horizontal (app démarrée sur :3000). Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).

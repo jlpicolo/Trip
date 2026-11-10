@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveQuery } from "dexie-react-hooks";
+import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -13,10 +14,11 @@ import { formatDayLong } from "@/lib/formatters";
 import type { Transport, TripDocument } from "@/lib/types/tickets";
 import type { Traveler } from "@/hooks/useTrip";
 
-export function DocumentDetails({ doc, state, transport, travelers, pendingError, onEdit, onDelete, onFullscreen, onDownload, onForget, onOpenTransport }: {
+export function DocumentDetails({ doc, state, transport, stay, travelers, pendingError, onEdit, onDelete, onFullscreen, onDownload, onForget, onOpenTransport }: {
   doc: TripDocument;
   state: FileState | null;
   transport?: Transport;
+  stay?: { id: string; name: string };
   travelers: Traveler[];
   pendingError?: string | null;
   onEdit: () => void;
@@ -78,6 +80,11 @@ export function DocumentDetails({ doc, state, transport, travelers, pendingError
         <button onClick={() => onOpenTransport(transport.id)} className="flex min-h-11 items-center gap-2 rounded-xl bg-night-soft px-3 text-left text-sm text-night">
           <Icon name="route" size={18} /> {transportTitle(transport)}
         </button>
+      )}
+      {stay && (
+        <Link href={`/hebergements?sejour=${stay.id}`} className="flex min-h-11 items-center gap-2 rounded-xl bg-teal-soft px-3 text-sm text-teal">
+          <Icon name="bed" size={18} /> {stay.name}
+        </Link>
       )}
       {doc.scope === "travelers" && <p className="text-sm text-dim">Concerne : {names.join(", ")}</p>}
       {doc.notes && <p className="whitespace-pre-wrap text-sm">{doc.notes}</p>}

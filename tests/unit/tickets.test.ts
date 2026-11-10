@@ -43,7 +43,7 @@ const transportForm = (o: Partial<TransportForm> = {}): TransportForm => ({
 });
 const docForm = (o: Partial<DocumentForm> = {}): DocumentForm => ({
   title: "Billet", category: "train", kind: "code", url: "", code_value: "ABC123", code_format: "qrcode", for_travelers: false,
-  traveler_ids: [], date: "", transport_id: "", notes: "", ...o,
+  traveler_ids: [], date: "", transport_id: "", accommodation_id: "", notes: "", ...o,
 });
 const pdf = (text = "%PDF-1.4 billet") => new File([text], "Billet Nozomi été.pdf", { type: "application/pdf" });
 

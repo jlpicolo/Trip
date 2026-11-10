@@ -1,11 +1,7 @@
-import { UpcomingSection } from "@/components/app/UpcomingSection";
+import { StaysPage } from "@/components/features/stays/StaysPage";
 
 export const metadata = { title: "Hébergements" };
 
 export default function Page() {
-  return (
-    <UpcomingSection title="Hébergements" icon="bed" phase="phase 3">
-      Fiches des logements, confirmations, itinéraires et rattachement aux journées.
-    </UpcomingSection>
-  );
+  return <StaysPage />;
 }

@@ -96,7 +96,7 @@ export default function PlanningPage() {
 
   const daySection = (date: string) => (
     <DaySection key={date} date={date} dayNumber={data.dates.indexOf(date) + 1} isToday={date === today}
-      day={data.days.get(date)} items={data.byDate.get(date) ?? []} transports={data.transportsByDate.get(date)} places={data.places}
+      day={data.days.get(date)} items={data.byDate.get(date) ?? []} transports={data.transportsByDate.get(date)} stays={data.stays} places={data.places}
       onOpen={open} onToggleDone={toggleDone} onReorder={reorder}
       onAdd={() => setDrawer({ kind: "activity", date })} onEditDay={() => setDrawer({ kind: "day", date })} />
   );

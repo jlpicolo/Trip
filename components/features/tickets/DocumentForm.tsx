@@ -13,6 +13,7 @@ import { formatDayShort, tripDates } from "@/lib/formatters";
 import { fieldErrors } from "@/lib/validation/schemas";
 import { documentSchema, type DocumentForm as FormValues, type DocumentPatch } from "@/lib/validation/document";
 import { CODE_FORMATS, DOCUMENT_CATEGORIES, type Transport, type TripDocument } from "@/lib/types/tickets";
+import type { Accommodation } from "@/lib/types/stays";
 import type { Traveler } from "@/hooks/useTrip";
 import type { Trip } from "@/lib/types/trip";
 
@@ -28,6 +29,7 @@ export function initialDocumentForm(d?: TripDocument, draft?: Partial<FormValues
     traveler_ids: d?.traveler_ids ?? [],
     date: d?.date ?? "",
     transport_id: d?.transport_id ?? "",
+    accommodation_id: d?.accommodation_id ?? "",
     notes: d?.notes ?? "",
     ...draft,
   };
@@ -35,10 +37,11 @@ export function initialDocumentForm(d?: TripDocument, draft?: Partial<FormValues
 
 const KIND_LABEL = { file: "Fichier (PDF, image)", link: "Lien", code: "QR / code-barres" } as const;
 
-export function DocumentForm({ trip, travelers, transports, initial, isNew, onSubmit }: {
+export function DocumentForm({ trip, travelers, transports, stays = [], initial, isNew, onSubmit }: {
   trip: Trip;
   travelers: Traveler[];
   transports: Transport[];
+  stays?: Accommodation[];
   initial: FormValues;
   isNew: boolean;
   onSubmit: (patch: DocumentPatch, file: File | null) => Promise<void>;
@@ -168,6 +171,12 @@ export function DocumentForm({ trip, travelers, transports, initial, isNew, onSu
         <SelectField label="Trajet associé" value={v.transport_id} onChange={set("transport_id")}>
           <option value="">Aucun</option>
           {transports.map((t) => <option key={t.id} value={t.id}>{formatDayShort(t.departure_date)} · {transportTitle(t)}</option>)}
+        </SelectField>
+      )}
+      {stays.length > 0 && (
+        <SelectField label="Hébergement associé" value={v.accommodation_id} onChange={set("accommodation_id")}>
+          <option value="">Aucun</option>
+          {stays.map((h) => <option key={h.id} value={h.id}>{formatDayShort(h.check_in_date)} · {h.name}</option>)}
         </SelectField>
       )}
       <SelectField label="Journée" value={v.date} onChange={set("date")} error={errors.date}>

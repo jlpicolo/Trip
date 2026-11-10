@@ -12,6 +12,7 @@ export interface DocumentForm {
   traveler_ids: string[];
   date: string;
   transport_id: string;
+  accommodation_id: string;
   notes: string;
 }
 
@@ -26,6 +27,7 @@ export type DocumentPatch = {
   traveler_ids: string[];
   date: string | null;
   transport_id: string | null;
+  accommodation_id: string | null;
   notes: string | null;
 };
 
@@ -59,6 +61,7 @@ export const documentSchema = z
     traveler_ids: z.array(z.string().uuid()),
     date: z.string().refine((d) => d === "" || /^\d{4}-\d{2}-\d{2}$/.test(d), "Date invalide"),
     transport_id: z.string(),
+    accommodation_id: z.string(),
     notes: z.string().max(10000),
   })
   .superRefine((v, ctx) => {
@@ -88,5 +91,6 @@ export const documentSchema = z
     traveler_ids: v.for_travelers ? [...new Set(v.traveler_ids)].sort() : [],
     date: opt(v.date),
     transport_id: opt(v.transport_id),
+    accommodation_id: opt(v.accommodation_id),
     notes: opt(v.notes),
   }));

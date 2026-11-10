@@ -17,7 +17,8 @@ const PRECACHE_HEADER = { "x-jt-precache": "1" };
 // Fichiers versionnés de Next, référencés dans le HTML, les CSS (polices) et les JS (morceaux
 // chargés à la demande : carte, codes). Extension obligatoire : le HTML diffusé en flux coupe
 // parfois une adresse en deux.
-const STATIC_RE = /(?:\/_next\/)?static\/(?:immutable\/)?(?:chunks|media|css)\/[\w\-./]+?\.(?:js|css|woff2?|png|svg|wasm)(?=["'\s)\\]|$)/g;
+// Vercel ajoute `?dpl=…` (protection contre les versions mélangées) : la requête fait partie de la clé.
+const STATIC_RE = /(?:\/_next\/)?static\/(?:immutable\/)?(?:chunks|media|css)\/[\w\-./]+?\.(?:js|css|woff2?|png|svg|wasm)(?:\?dpl=[\w-]+)?(?=["'\s)\\]|$)/g;
 const staticUrl = (m) => (m.startsWith("/_next/") ? m : `/_next/${m}`);
 
 async function precache() {

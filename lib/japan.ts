@@ -17,3 +17,33 @@ export function cityKanji(name: string): string | null {
 export function sameCity(a: string | null | undefined, b: string | null | undefined): boolean {
   return !!a && !!b && key(a) === key(b);
 }
+
+/**
+ * Centre et rayon (km) des villes connues, pour le téléchargement des cartes hors ligne.
+ * Données fixes ; les lieux enregistrés dans la ville élargissent la zone si besoin.
+ */
+const CITY_AREA: Record<string, { lat: number; lng: number; km: number }> = {
+  tokyo: { lat: 35.6812, lng: 139.7671, km: 9 },
+  osaka: { lat: 34.6937, lng: 135.5023, km: 6 },
+  kyoto: { lat: 35.0116, lng: 135.7681, km: 6 },
+  nara: { lat: 34.6851, lng: 135.8048, km: 3 },
+  kanazawa: { lat: 36.5613, lng: 136.6562, km: 3 },
+  nagano: { lat: 36.6485, lng: 138.195, km: 3 },
+  hiroshima: { lat: 34.3853, lng: 132.4553, km: 4 },
+  miyajima: { lat: 34.2959, lng: 132.3199, km: 2 },
+  hakone: { lat: 35.2324, lng: 139.1069, km: 5 },
+  kobe: { lat: 34.6901, lng: 135.1955, km: 4 },
+  himeji: { lat: 34.8394, lng: 134.6939, km: 2 },
+  nikko: { lat: 36.7199, lng: 139.6982, km: 3 },
+  takayama: { lat: 36.1461, lng: 137.2522, km: 2 },
+  kamakura: { lat: 35.3192, lng: 139.5467, km: 3 },
+  yokohama: { lat: 35.4437, lng: 139.638, km: 5 },
+  nagoya: { lat: 35.1815, lng: 136.9066, km: 5 },
+  matsumoto: { lat: 36.238, lng: 137.972, km: 2 },
+  sapporo: { lat: 43.0618, lng: 141.3545, km: 5 },
+  fukuoka: { lat: 33.5904, lng: 130.4017, km: 5 },
+};
+
+export function cityArea(name: string): { lat: number; lng: number; km: number } | null {
+  return CITY_AREA[key(name)] ?? null;
+}

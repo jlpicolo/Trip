@@ -12,10 +12,7 @@ export type MapStatus = "loading" | "ready" | "tiles-unavailable" | "unsupported
 
 
 
-const STYLE = {
-  light: "https://tiles.openfreemap.org/styles/liberty",
-  dark: "https://tiles.openfreemap.org/styles/dark",
-} as const;
+import { MAP_STYLES as STYLE } from "@/lib/map-tiles";
 const JAPAN = { center: [137.2, 36.0] as [number, number], zoom: 4.6 };
 
 function markerElement(place: Place): HTMLButtonElement {

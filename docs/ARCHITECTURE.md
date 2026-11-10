@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3f (accueil) terminée** — prochaine : phase 5 (sans spécificités iPhone), puis budget. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 5 (hors ligne et installation) terminée** — prochaine : phase 4 (budget). Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 10 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -174,7 +174,7 @@ Aucun voyageur n'a de privilège supplémentaire.
 | Base, auth, fichiers | **Supabase** | oui (URL + clé publishable ; clé secrète uniquement dans les scripts du propriétaire) | demandé ; RLS + Storage privé ; connexion par nom d'utilisateur |
 | Hébergement web | **Vercel** (Hobby) | non | natif Next.js ; alternative : Netlify, Cloudflare Pages |
 | Fond de carte (en ligne) | **OpenFreeMap** (tuiles vectorielles OpenStreetMap, styles `liberty` clair et `dark`) | non | gratuit, sans clé ni inscription, sans limite de consultation ; attribution OSM affichée |
-| Fond de carte (hors ligne, phase 5) | **PMTiles** : extraits OSM des 6 villes (build Protomaps), hébergés par nos soins | non | seul moyen propre et conforme de télécharger des zones hors ligne. Les serveurs `tile.openstreetmap.org` l'interdisent ; les fournisseurs commerciaux restreignent le cache |
+| Fond de carte (hors ligne) | **OpenFreeMap** mis en cache ville par ville par le service worker | non | aucun hébergement à gérer ; les serveurs `tile.openstreetmap.org` interdisent ce téléchargement, OpenFreeMap n'impose pas de limite |
 | Recherche de lieux | **Nominatim** (OSM) | non | gratuit, 1 req/s max, pas d'autocomplétion → recherche sur validation. Les adresses japonaises sont mal couvertes : saisie manuelle des coordonnées / collage d'un lien Google Maps en secours |
 | Itinéraires | **Liens externes** Google Maps / Apple Maps | non | pas d'API de calcul d'itinéraire : on n'invente pas de temps de trajet |
 | Taux EUR/JPY | **Frankfurter** (données BCE) | non | gratuit, sans clé. **Taux de référence quotidien** (jours ouvrés), affiché avec sa date : jamais présenté comme « temps réel ». Taux manuel possible |
@@ -264,7 +264,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **3e. Carnet** ✅ | catégories, priorités, conversion en activité sans ressaisie (photos abandonnées : choix des voyageurs) | E2E conversion |
 | **3f. Dashboard** ✅ | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
 | **4. Budget** | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
-| **5. Hors ligne avancé** | installation (manifest, service worker), réouverture sans réseau, cartes hors ligne par ville, persistance, « tout re-télécharger » — **aucun iPhone dans le groupe : pas de contournements iOS/Safari** | E2E en mode avion simulé (Playwright `offline`) |
+| **5. Hors ligne avancé** ✅ | installation (manifest, service worker), réouverture sans réseau, cartes hors ligne par ville, persistance, « tout re-télécharger » — **aucun iPhone dans le groupe : pas de contournements iOS/Safari** | E2E en mode avion simulé (Playwright `offline`) |
 | **6. Finalisation** | export JSON/CSV, duplication de voyage, accessibilité, audit sécurité, Lighthouse PWA, documentation de déploiement | checklist complète |
 
 Ordre justifié : le moteur de synchronisation est développé dès la phase 2 car toutes les sections en
@@ -551,7 +551,37 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
   les nuits viennent des hébergements ; les compteurs sont à 0 sur un voyage vide.
 - Ordre de la suite décidé par les voyageurs (novembre 2026) : 3f → 5 → 4 → 6 ; personne n'utilise d'iPhone.
 
-## 16. Décisions prises (détails secondaires)
+## 16. Réalisé en phase 5 — Installation et hors ligne
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Manifeste, icônes (dont maskable) générées depuis un SVG | `app/manifest.ts`, `scripts/gen-icons.mjs`, `public/icons/*` | E2E (manifeste lu) |
+| Service worker écrit à la main, généré à chaque build (version + pages) | `scripts/sw.template.js`, `scripts/build-sw.mjs` → `public/sw.js` (non versionné) | E2E `offline.e2e.mjs` (5 étapes, build de production) |
+| Enregistrement, bandeau « Nouvelle version disponible », stockage persistant | `components/app/ServiceWorker.tsx` | E2E (installation) ; mise à jour vérifiée manuellement seulement |
+| Cartes hors ligne par ville (tuiles, styles, sprites, glyphes latins) | `lib/map-tiles.ts`, `lib/sync/offline-map.ts`, `lib/japan.ts` (zones des villes) | tests unitaires + E2E (Nara affichée sans réseau) |
+| Section Paramètres « Hors ligne » : état réel, espace utilisé, « Tout télécharger », cartes | `components/features/settings/OfflineSection.tsx` | E2E |
+| Indicateur « Hors ligne » dès l'ouverture sans réseau | `hooks/useSync.ts` | E2E |
+
+### Décisions de la phase 5
+
+- **Aucun iPhone dans le groupe** : pas de contournements iOS/Safari (pdf.js, HEIC, écrans de démarrage Apple).
+- **Précache à l'installation** : toutes les pages (coquilles statiques sans données, identiques pour tous ; le
+  `proxy.ts` les laisse passer avec l'en-tête `x-jt-precache`), puis **parcours des HTML, CSS et JS** pour trouver
+  tous les fichiers `/_next/static` (y compris les morceaux chargés à la demande : carte, codes) et les polices.
+  Liste construite à l'exécution : aucun fichier généré après le build n'est nécessaire (déploiement Vercel simple).
+- **Stratégies** : pages réseau d'abord puis cache ; `/_next/static` cache d'abord ; requêtes RSC jamais en cache
+  (en cas d'échec, Next recharge la page, servie par le cache) ; Supabase, `/api`, `/auth` jamais interceptés.
+- **Mise à jour** : la nouvelle version attend ; bandeau « Recharger » ; aucun rechargement forcé (y compris à la
+  première installation, où le service worker prend la main sans recharger).
+- **Cartes hors ligne** : téléchargées à la demande, ville par ville, depuis OpenFreeMap (zooms 0 à 15, zone fixe par
+  ville connue élargie aux lieux enregistrés). Les tuiles sont rangées **sous une clé sans version** : OpenFreeMap
+  change l'adresse des tuiles chaque semaine et une carte téléchargée doit rester lisible. Les kanji et kana sont
+  dessinés par les polices du téléphone (MapLibre), seuls les glyphes latins sont téléchargés. Taille affichée,
+  fichiers manquants signalés, suppression sans toucher aux fichiers partagés avec une autre ville.
+- **PMTiles auto-hébergés abandonnés** (prévus initialement) : inutiles avec ce cache, et pas d'hébergement à gérer.
+- **Tests E2E sur build de production** (`npm run build && npm start`) : le service worker est désactivé en dev.
+
+## 17. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

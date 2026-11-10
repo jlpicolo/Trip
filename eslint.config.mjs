@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     // Fichier tiers copié au build (scripts/copy-vendor-assets.mjs).
     "public/maplibre/**",
     "public/zxing/**",
+    "public/sw.js",
   ]),
 ]);
 

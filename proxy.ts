@@ -9,6 +9,8 @@ const PUBLIC = ["/connexion", "/inscription", "/mot-de-passe-oublie", "/nouveau-
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   if (PUBLIC.some((p) => pathname === p || pathname.startsWith(`${p}/`))) return NextResponse.next();
+  // Précache du service worker : les pages sont des coquilles sans données, identiques pour tous.
+  if (request.headers.get("x-jt-precache") === "1") return NextResponse.next();
   const hasSession = request.cookies.getAll().some((c) => c.name.startsWith("sb-") && c.name.includes("-auth-token"));
   if (hasSession) return NextResponse.next();
   const url = request.nextUrl.clone();

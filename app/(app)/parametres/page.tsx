@@ -11,6 +11,7 @@ import { TravelersSection } from "@/components/features/settings/TravelersSectio
 import { ProfileSection } from "@/components/features/settings/ProfileSection";
 import { AppearanceSection } from "@/components/features/settings/AppearanceSection";
 import { AccountSection } from "@/components/features/settings/AccountSection";
+import { OfflineSection } from "@/components/features/settings/OfflineSection";
 import { useSession } from "@/hooks/useSession";
 import { getEngine } from "@/lib/sync/client";
 import type { TripInput } from "@/lib/validation/schemas";
@@ -49,6 +50,12 @@ export default function SettingsPage() {
       <ProfileSection userId={userId} />
       <SectionTitle>Apparence</SectionTitle>
       <AppearanceSection />
+      {trip && (
+        <>
+          <SectionTitle>Hors ligne</SectionTitle>
+          <OfflineSection trip={trip} userId={userId} />
+        </>
+      )}
       <SectionTitle>Synchronisation</SectionTitle>
       <Link href="/synchronisation">
         <Card className="flex items-center gap-3 hover:bg-elev">

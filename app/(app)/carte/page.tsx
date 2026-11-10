@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useMemo, useState } from "react";
@@ -178,8 +179,8 @@ function MapPage() {
           )}
           {mapStatus === "tiles-unavailable" && (
             <p role="status" className="pointer-events-auto rounded-xl border border-warning/40 bg-card/95 px-3 py-2 text-sm text-warning shadow-[var(--shadow)]">
-              Fond de carte indisponible (pas de connexion). Le téléchargement des cartes pour le hors ligne arrive dans une
-              prochaine version ; vos lieux restent consultables dans la liste sous la carte.
+              Fond de carte indisponible sans connexion pour cette zone. Vos lieux restent dans la liste sous la carte.{" "}
+              <Link href="/parametres#hors-ligne" className="font-semibold underline">Télécharger les cartes des villes</Link>
             </p>
           )}
           {!picking && !moving && (

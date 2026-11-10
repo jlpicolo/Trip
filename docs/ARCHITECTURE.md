@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3e (carnet) terminée**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 3f (accueil) terminée** — prochaine : phase 5 (sans spécificités iPhone), puis budget. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 10 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -262,9 +262,9 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **3c. Transports & documents** ✅ | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
 | **3d. Hébergements** ✅ | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
 | **3e. Carnet** ✅ | catégories, priorités, conversion en activité sans ressaisie (photos abandonnées : choix des voyageurs) | E2E conversion |
-| **3f. Dashboard** | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
+| **3f. Dashboard** ✅ | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
 | **4. Budget** | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
-| **5. Hors ligne avancé** | téléchargement des documents, cartes hors ligne par ville, écran de conflits, indicateurs, persistance | E2E en mode avion simulé (Playwright `offline`) |
+| **5. Hors ligne avancé** | installation (manifest, service worker), réouverture sans réseau, cartes hors ligne par ville, persistance, « tout re-télécharger » — **aucun iPhone dans le groupe : pas de contournements iOS/Safari** | E2E en mode avion simulé (Playwright `offline`) |
 | **6. Finalisation** | export JSON/CSV, duplication de voyage, accessibilité, audit sécurité, Lighthouse PWA, documentation de déploiement | checklist complète |
 
 Ordre justifié : le moteur de synchronisation est développé dès la phase 2 car toutes les sections en
@@ -536,7 +536,22 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
   être planifiée plusieurs fois ; son état « Planifié · dates » est **calculé** depuis les activités, jamais stocké.
 - **Supprimer une entrée** conserve les activités déjà planifiées et son lieu sur la carte.
 
-## 15. Décisions prises (détails secondaires)
+## 15. Réalisé en phase 3f — Accueil
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Préparation : journées prévues, nuits réservées, incontournables non planifiés | `lib/dashboard.ts` | tests unitaires |
+| Prochain trajet (heure du fuseau du voyage) + billet plein écran en un geste, hébergement de ce soir ou suivant, préparation, lieux favoris | `app/(app)/accueil/page.tsx` | E2E `dashboard.e2e.mjs` (4 étapes) |
+
+### Décisions de la phase 3f
+
+- **Ordre des priorités de l'accueil** : prochaine activité, prochain trajet (avec « Afficher le billet » s'il a un code),
+  hébergement (« Ce soir » pendant le voyage), préparation, favoris, voyageurs, historique.
+- **Préparation calculée, jamais déclarée** : une journée est « prévue » si elle a une activité ou est marquée libre ;
+  les nuits viennent des hébergements ; les compteurs sont à 0 sur un voyage vide.
+- Ordre de la suite décidé par les voyageurs (novembre 2026) : 3f → 5 → 4 → 6 ; personne n'utilise d'iPhone.
+
+## 16. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

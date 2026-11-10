@@ -1,17 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Icon, type IconName } from "@/components/ui/Icon";
 import { useCurrentTrip } from "@/components/app/TripContext";
 import { useTravelers } from "@/hooks/useTrip";
 import { getLocalDb } from "@/lib/db/schema";
-import { nextAccommodation, nextActivity, nextTransport, recentActivity } from "@/lib/db/dashboard";
-import { daysOfTrip } from "@/lib/db/planning";
+import { nextActivity, recentActivity } from "@/lib/db/dashboard";
+import { activitiesOfTrip, daysOfTrip, placesOfTrip } from "@/lib/db/planning";
+import { documentsOfTrip, transportsOfTrip } from "@/lib/db/tickets";
+import { staysOfTrip } from "@/lib/db/stays";
+import { entriesOfTrip } from "@/lib/db/journal";
+import { nowHm, preparationStats } from "@/lib/dashboard";
+import { nextTransport, transportTitle, TRANSPORT_META } from "@/lib/tickets";
+import { stayForNight, sortStays } from "@/lib/stays";
+import { FullscreenCode } from "@/components/features/tickets/FullscreenCode";
+import type { TripDocument } from "@/lib/types/tickets";
 import { describeGroup, groupActivity } from "@/lib/activity";
 import { categoryMeta, hm } from "@/lib/planning";
 import { cityKanji, sameCity } from "@/lib/japan";
-import { formatDate, formatRelative, todayIn, tripPhase } from "@/lib/formatters";
+import { formatDate, formatRelative, todayIn, tripDates, tripPhase } from "@/lib/formatters";
 import type { SyncedRow } from "@/lib/types/sync";
 
 function greeting(now = new Date()) {
@@ -26,13 +35,27 @@ export default function DashboardPage() {
   const phase = tripPhase(trip.start_date, trip.end_date, trip.timezone);
   const travelers = useTravelers(trip.group_id);
   const me = travelers?.find((t) => t.id === userId);
-  const data = useLiveQuery(async () => ({
-    activity: await nextActivity(db, trip.id, today),
-    transport: await nextTransport(db, trip.id, today),
-    stay: await nextAccommodation(db, trip.id, today),
-    days: await daysOfTrip(db, trip.id),
-    log: await recentActivity(db, trip.id, 30),
-  }), [trip.id, today]);
+  const [code, setCode] = useState<TripDocument | null>(null);
+  const closeCode = useCallback(() => setCode(null), []);
+  const data = useLiveQuery(async () => {
+    const [activity, days, log, transports, stays, docs, entries, activities, places] = await Promise.all([
+      nextActivity(db, trip.id, today), daysOfTrip(db, trip.id), recentActivity(db, trip.id, 30), transportsOfTrip(db, trip.id),
+      staysOfTrip(db, trip.id), documentsOfTrip(db, trip.id), entriesOfTrip(db, trip.id), activitiesOfTrip(db, trip.id), placesOfTrip(db, trip.id),
+    ]);
+    const transport = nextTransport(transports, today, nowHm(trip.timezone));
+    const tonight = stayForNight(stays, today);
+    const stay = tonight ?? sortStays(stays).find((x) => x.check_in_date >= today) ?? null;
+    const prep = preparationStats({
+      dates: tripDates(trip.start_date, trip.end_date), start: trip.start_date, end: trip.end_date, activities,
+      freeDays: new Set([...days.values()].filter((d) => d.is_free).map((d) => d.date)), stays, entries,
+      planned: new Set(activities.map((a) => a.journal_entry_id).filter((x): x is string => !!x)),
+    });
+    return {
+      activity, days, log, transport, stay, tonight: !!tonight, prep, transportCount: transports.length,
+      codes: transport ? docs.filter((d) => d.transport_id === transport.id && d.kind === "code") : [],
+      favorites: [...places.values()].filter((p) => p.is_favorite).sort((a, b) => a.name.localeCompare(b.name, "fr")),
+    };
+  }, [trip.id, today, trip.start_date, trip.end_date, trip.timezone]);
   const nameOf = (id: string | null) => travelers?.find((t) => t.id === id)?.display_name ?? "Un voyageur";
   const colorOf = (id: string | null) => travelers?.find((t) => t.id === id)?.color ?? "var(--text-mute)";
 
@@ -112,10 +135,53 @@ export default function DashboardPage() {
         <h2 id="prochaine-etape" className="font-sans text-sm font-bold text-dim">Prochaine étape</h2>
         <NextActivity row={data?.activity} />
         <div className="grid grid-cols-2 gap-2">
-          <MiniCard icon="train" label="Transport" row={data?.transport} title="carrier" date="departure_date" time="departure_time" />
-          <MiniCard icon="bed" label="Hébergement" row={data?.stay} title="name" date="check_in_date" time="check_in_time" />
+          <MiniCard icon={data?.transport ? TRANSPORT_META[data.transport.kind].icon : "train"} label="Prochain trajet"
+            href={data?.transport ? `/billets?trajet=${data.transport.id}` : "/billets"} empty={data === undefined ? "…" : "Aucun trajet à venir"}
+            text={data?.transport ? transportTitle(data.transport) : null}
+            when={data?.transport ? `${formatDate(data.transport.departure_date, { day: "numeric", month: "short" })}${data.transport.departure_time ? ` · ${hm(data.transport.departure_time)}` : ""}` : null} />
+          <MiniCard icon="bed" label={data?.tonight ? "Ce soir" : "Prochain hébergement"}
+            href={data?.stay ? `/hebergements?sejour=${data.stay.id}` : "/hebergements"} empty={data === undefined ? "…" : "Aucun hébergement à venir"}
+            text={data?.stay?.name ?? null}
+            when={data?.stay && !data.tonight ? `${formatDate(data.stay.check_in_date, { day: "numeric", month: "short" })}${data.stay.check_in_time ? ` · dès ${hm(data.stay.check_in_time)}` : ""}` : data?.stay?.city ?? null} />
         </div>
+        {data && data.codes.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {data.codes.map((d) => (
+              <button key={d.id} onClick={() => setCode(d)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-coral px-4 text-sm font-semibold text-on-accent">
+                <Icon name="qr" size={18} /> {data.codes.length > 1 ? d.title : "Afficher le billet"}
+              </button>
+            ))}
+          </div>
+        )}
       </section>
+
+      {data && phase.phase !== "after" && (
+        <section aria-labelledby="preparation" className="flex flex-col gap-2">
+          <h2 id="preparation" className="font-sans text-sm font-bold text-dim">Préparation</h2>
+          <ul className="flex flex-col divide-y divide-line rounded-2xl border border-line bg-card">
+            <PrepRow href="/planning" icon="calendar" label="Journées prévues" value={data.prep.daysPlanned} total={data.prep.totalDays} />
+            <PrepRow href="/hebergements" icon="bed" label="Nuits réservées" value={data.prep.nightsCovered} total={data.prep.totalNights} />
+            <PrepRow href="/billets" icon="ticket" label="Trajets enregistrés" value={data.transportCount} />
+            <PrepRow href="/carnet" icon="star" label="Incontournables à planifier" value={data.prep.mustSeeUnplanned.length}
+              detail={data.prep.mustSeeUnplanned.slice(0, 3).map((e) => e.title).join(" · ")} />
+          </ul>
+        </section>
+      )}
+
+      {data && data.favorites.length > 0 && (
+        <section aria-labelledby="favoris" className="flex flex-col gap-2">
+          <h2 id="favoris" className="font-sans text-sm font-bold text-dim">Lieux favoris</h2>
+          <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+            {data.favorites.map((p) => (
+              <li key={p.id} className="shrink-0">
+                <Link href={`/carte?lieu=${p.id}`} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-strong bg-card px-3 text-sm hover:bg-elev">
+                  <Icon name="heart" size={16} className="text-sakura" /> {p.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section aria-labelledby="voyageurs" className="flex flex-col gap-2">
         <h2 id="voyageurs" className="font-sans text-sm font-bold text-dim">Voyageurs</h2>
@@ -154,7 +220,36 @@ export default function DashboardPage() {
           </ul>
         )}
       </section>
+      {code?.code_value && code.code_format && (
+        <FullscreenCode title={code.title} format={code.code_format} value={code.code_value}
+          subtitle={data?.transport ? transportTitle(data.transport) : null} onClose={closeCode} />
+      )}
     </div>
+  );
+}
+
+function PrepRow({ href, icon, label, value, total, detail }: {
+  href: string; icon: IconName; label: string; value: number; total?: number; detail?: string;
+}) {
+  const done = total !== undefined && total > 0 && value >= total;
+  return (
+    <li>
+      <Link href={href} className="flex min-h-14 items-center gap-3 px-4 py-2.5 hover:bg-elev">
+        <Icon name={icon} size={18} className={done ? "text-teal" : "text-dim"} />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm">{label}</span>
+          {total !== undefined && total > 0 && (
+            <span className="mt-1 block h-1 overflow-hidden rounded-full bg-elev" aria-hidden="true">
+              <span className="block h-full rounded-full" style={{ width: `${Math.round((value / total) * 100)}%`, background: done ? "var(--teal)" : "var(--coral)" }} />
+            </span>
+          )}
+          {detail && <span className="mt-0.5 block truncate text-xs text-mute">{detail}</span>}
+        </span>
+        <span className={`font-display text-lg font-bold tabular-nums ${done ? "text-teal" : ""}`}>
+          {value}{total !== undefined && <span className="text-sm text-mute">/{total}</span>}
+        </span>
+      </Link>
+    </li>
   );
 }
 
@@ -212,17 +307,20 @@ function NextActivity({ row }: { row: SyncedRow | null | undefined }) {
   );
 }
 
-function MiniCard({ icon, label, row, title, date, time }: {
-  icon: IconName; label: string; row: SyncedRow | null | undefined; title: string; date: string; time: string;
+function MiniCard({ icon, label, href, text, when, empty }: {
+  icon: IconName; label: string; href: string; text: string | null; when: string | null; empty: string;
 }) {
   return (
-    <div className="flex min-h-[76px] flex-col justify-center gap-0.5 rounded-2xl border border-dashed border-line-strong bg-card px-3 py-2.5 text-xs text-dim">
+    <Link href={href} className={`flex min-h-[76px] min-w-0 flex-col justify-center gap-0.5 rounded-2xl border bg-card px-3 py-2.5 text-xs text-dim hover:bg-elev ${text ? "border-line" : "border-dashed border-line-strong"}`}>
       <span className="flex items-center gap-1.5 font-bold text-ink"><Icon name={icon} size={16} className="text-night" />{label}</span>
-      {row ? (
-        <span>{String(row[title] ?? "")} · {formatDate(String(row[date]), { day: "numeric", month: "short" })}{row[time] ? ` ${hm(String(row[time]))}` : ""}</span>
+      {text ? (
+        <>
+          <span className="line-clamp-2 text-sm text-ink">{text}</span>
+          {when && <span>{when}</span>}
+        </>
       ) : (
-        <span>{row === undefined ? "…" : "Aucun renseigné"}</span>
+        <span>{empty}</span>
       )}
-    </div>
+    </Link>
   );
 }

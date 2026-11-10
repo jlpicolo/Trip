@@ -22,6 +22,7 @@ import { getLocalDb } from "@/lib/db/schema";
 import { addFileDocument, deleteDocument, deleteTransport, saveDocument, saveTransport } from "@/lib/db/tickets";
 import { DOCUMENT_CATEGORY_LABEL, concerns, nextTransport, transportTitle } from "@/lib/tickets";
 import { todayIn } from "@/lib/formatters";
+import { nowHm } from "@/lib/dashboard";
 import { toMessage } from "@/lib/errors/messages";
 import { DOCUMENT_CATEGORIES, type TripDocument } from "@/lib/types/tickets";
 
@@ -31,10 +32,6 @@ type DrawerState =
   | { kind: "transport-form"; id?: string }
   | { kind: "doc"; id: string }
   | { kind: "doc-form"; id?: string; transportId?: string; date?: string };
-
-function nowHm(timeZone: string) {
-  return new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit", hourCycle: "h23", timeZone }).format(new Date());
-}
 
 function Tickets() {
   const { trip, userId } = useCurrentTrip();

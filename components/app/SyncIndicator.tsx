@@ -11,6 +11,8 @@ export function SyncIndicator() {
   const attention = s.conflicts + s.rejected;
   let tone = "text-dim";
   let label = s.lastSyncAt ? `Synchronisé ${formatRelative(s.lastSyncAt)}` : "Jamais synchronisé";
+  // Un fichier pas encore envoyé n'est pas « synchronisé » : il compte comme une attente.
+  const waiting = s.pending + s.pendingFiles;
   let icon: "sync" | "cloudOff" | "alert" | "check" = s.lastSyncAt ? "check" : "sync";
   if (s.syncing) {
     label = "Synchronisation…";
@@ -22,9 +24,9 @@ export function SyncIndicator() {
   } else if (!s.online) {
     tone = "text-warning";
     icon = "cloudOff";
-    label = s.pending ? `Hors ligne · ${s.pending} en attente` : "Hors ligne";
-  } else if (s.pending > 0) {
-    label = `${s.pending} en attente`;
+    label = waiting ? `Hors ligne · ${waiting} en attente` : "Hors ligne";
+  } else if (waiting > 0) {
+    label = `${waiting} en attente`;
     icon = "sync";
   }
   return (

@@ -12,12 +12,12 @@ import { getEngine } from "@/lib/sync/client";
 
 export function AccountSection({ username }: { username: string }) {
   const router = useRouter();
-  const { pending } = useSyncStatus();
+  const { pending, pendingFiles } = useSyncStatus();
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function logout() {
-    if (pending > 0 && !confirming) return setConfirming(true);
+    if (pending + pendingFiles > 0 && !confirming) return setConfirming(true);
     setLoading(true);
     // Effacement AVANT la fin de session : les billets et documents ne doivent jamais
     // rester sur un appareil déconnecté, même si l'app est fermée juste après.
@@ -33,7 +33,10 @@ export function AccountSection({ username }: { username: string }) {
       <Link href="/nouveau-mot-de-passe" className="text-sm font-semibold text-sakura">Changer de mot de passe</Link>
       {confirming && (
         <p role="alert" className="rounded-xl border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-          {pending} modification(s) n&apos;ont pas encore été envoyées et seront perdues. Synchronisez d&apos;abord, ou confirmez la déconnexion.
+          {pending > 0 && <>{pending} modification(s) </>}
+          {pending > 0 && pendingFiles > 0 && <>et </>}
+          {pendingFiles > 0 && <>{pendingFiles} fichier(s) </>}
+          n&apos;ont pas encore été envoyés et seront perdus. Synchronisez d&apos;abord, ou confirmez la déconnexion.
         </p>
       )}
       <Button variant="danger" icon="logout" onClick={logout} loading={loading}>

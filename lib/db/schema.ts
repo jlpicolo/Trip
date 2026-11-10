@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import { SYNC_TABLES, type ConflictRecord, type OutboxEntry, type RejectedMutation, type Shadow, type SyncTable, type SyncedRow } from "@/lib/types/sync";
+import type { LocalFile, PendingUpload } from "@/lib/types/tickets";
 import type { ActivityLogEntry, GroupMember, Profile } from "@/lib/types/trip";
 
 export interface MetaEntry {
@@ -16,6 +17,8 @@ export class LocalDb extends Dexie {
   members!: Table<GroupMember, [string, string]>;
   profiles!: Table<Profile, string>;
   meta!: Table<MetaEntry, string>;
+  files!: Table<LocalFile, string>;
+  uploads!: Table<PendingUpload, string>;
 
   constructor(name: string) {
     super(name);
@@ -30,6 +33,10 @@ export class LocalDb extends Dexie {
       members: "&[group_id+user_id], group_id, user_id",
       profiles: "&id",
       meta: "&key",
+    });
+    this.version(2).stores({
+      files: "&document_id",
+      uploads: "&document_id, trip_id",
     });
   }
 

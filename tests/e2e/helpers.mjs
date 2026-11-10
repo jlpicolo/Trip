@@ -47,7 +47,16 @@ export async function cleanup(users, tripIds = []) {
   const ids = users.map((u) => u?.id).filter(Boolean);
   const { data: groups } = await admin.from("group_members").select("group_id").in("user_id", ids);
   for (const g of new Set((groups ?? []).map((x) => x.group_id))) await admin.from("travel_groups").delete().eq("id", g);
-  for (const t of tripIds) await admin.from("activity_log").delete().eq("trip_id", t);
+  for (const t of tripIds) {
+    await admin.from("activity_log").delete().eq("trip_id", t);
+    // Fichiers des documents : {trip}/{document}/{nom}.
+    const { data: folders } = await admin.storage.from("trip-files").list(t);
+    for (const f of folders ?? []) {
+      const { data: files } = await admin.storage.from("trip-files").list(`${t}/${f.name}`);
+      const paths = (files ?? []).map((x) => `${t}/${f.name}/${x.name}`);
+      if (paths.length) await admin.storage.from("trip-files").remove(paths);
+    }
+  }
   for (const id of ids) await admin.auth.admin.deleteUser(id);
 }
 
@@ -58,7 +67,25 @@ export async function launch() {
   return { browser, mobile, desktop: { viewport: { width: 1280, height: 860 }, ignoreHTTPSErrors: !!proxy, locale: "fr-FR" } };
 }
 
+/**
+ * Outils de développement Next (badge « Insight ») : absents en production, ils peuvent recouvrir
+ * les boutons du bas de l'écran. Masqués pour que les tests cliquent comme un utilisateur réel.
+ */
+const hideDevOverlay = () => {
+  const add = () => {
+    const s = document.createElement("style");
+    s.textContent = "nextjs-portal{display:none!important}";
+    document.head.appendChild(s);
+  };
+  if (document.head) add();
+  else document.addEventListener("DOMContentLoaded", add);
+};
+
 export async function login(page, user) {
+  if (!page.context().__devOverlayHidden) {
+    page.context().__devOverlayHidden = true;
+    await page.context().addInitScript(hideDevOverlay);
+  }
   await page.goto(`${BASE}/connexion`);
   await page.getByLabel("Nom d'utilisateur").fill(user.username);
   await page.getByLabel("Mot de passe").fill(user.password);

@@ -80,4 +80,20 @@ describe("planification de la synchronisation", () => {
     expect(calls).toBeLessThanOrEqual(8);
     scheduler.stop();
   });
+  it("tâche annexe (billets) lancée après une synchro réussie, jamais hors ligne", async () => {
+    const server = new FakeServer();
+    const { engine } = setup(server);
+    const calls: (string | null)[] = [];
+    let online = false;
+    const scheduler = createSyncScheduler({
+      engine, resolveTripId: async () => TRIP, isOnline: () => online, debounceMs: 50,
+      afterSync: async (tripId) => calls.push(tripId),
+    });
+    await scheduler.runNow();
+    expect(calls).toEqual([]);
+    online = true;
+    await scheduler.runNow();
+    expect(calls).toEqual([TRIP]);
+    scheduler.stop();
+  });
 });

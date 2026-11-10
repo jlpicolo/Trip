@@ -1,11 +1,6 @@
-import { UpcomingSection } from "@/components/app/UpcomingSection";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Documents" };
-
+// Trajets et documents sont réunis dans l'onglet Billets.
 export default function Page() {
-  return (
-    <UpcomingSection title="Documents" icon="file" phase="phase 3">
-      Bibliothèque privée des billets, réservations et assurances, téléchargeables pour le hors ligne.
-    </UpcomingSection>
-  );
+  redirect("/billets");
 }

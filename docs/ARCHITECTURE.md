@@ -1,7 +1,7 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3b (carte) terminée + refonte design « Nuit de Tokyo »**. Document vivant, mis à jour à chaque phase.
-> Dernière mise à jour : 9 novembre 2026.
+> Statut : **Phase 3c (billets : transports & documents) terminée**. Document vivant, mis à jour à chaque phase.
+> Dernière mise à jour : 10 novembre 2026.
 
 ## 0. État du dépôt au démarrage
 
@@ -259,7 +259,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **2. Fondations** ✅ | dépendances, client Supabase, auth (inscription, connexion, déconnexion, mot de passe oublié), profil (pseudo, couleur, avatar), création de groupe + voyage, invitations, design system (sombre/clair), navigation mobile, gestion d'erreurs, couche Dexie + moteur de synchro (base nécessaire à toutes les sections) | 4 comptes réels sur un projet Supabase de test, même voyage visible sur 2 navigateurs, build OK |
 | **3a. Planning** ✅ | jours du voyage, timeline + vue calendrier, activités avec/sans horaire, glisser-déposer, idées non planifiées, journée libre, fait/non fait | E2E création/modification/déplacement + synchro |
 | **3b. Carte** ✅ | MapLibre + tuiles en ligne (OpenFreeMap), catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
-| **3c. Transports & documents** | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
+| **3c. Transports & documents** ✅ | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
 | **3d. Hébergements** | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
 | **3e. Carnet** | catégories, priorités, photos, conversion en activité sans ressaisie | E2E conversion |
 | **3f. Dashboard** | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
@@ -431,7 +431,7 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
 
 - **Marqueurs = boutons HTML** (pas des symboles WebGL) : atteignables au clavier, nommés pour les
   lecteurs d'écran (« Fushimi Inari (Monument), favori »), testables.
-- **Worker MapLibre** copié dans `public/maplibre/` au build (`scripts/copy-maplibre-worker.mjs`, hooks
+- **Worker MapLibre** copié dans `public/maplibre/` au build (`scripts/copy-vendor-assets.mjs`, hooks
   `predev`/`prebuild`) et chargé par `setWorkerUrl` : indépendant du bundler, cachable par le service worker.
   Exclu du `proxy.ts` et du lint.
 - **Placement** : bouton « Placer sur la carte » puis appui (pas de création à chaque appui accidentel).
@@ -451,7 +451,50 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
    `text-base`. Renommé `canvas` ; contrôle de contraste ajouté au test.
 3. Worker MapLibre redirigé vers `/connexion` par `proxy.ts`.
 
-## 12. Décisions prises (détails secondaires)
+## 12. Réalisé en phase 3c — Billets (transports & documents)
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Types, libellés, tri, prochain trajet, noms de fichiers sûrs, formats de codes | `lib/types/tickets.ts`, `lib/tickets.ts` | tests unitaires |
+| Validation trajet (dates du voyage ± 1 jour, arrivée cohérente) et document (lien, code, EAN-13, voyageurs) | `lib/validation/transport.ts`, `document.ts` | tests unitaires |
+| Écritures locales : trajets, documents lien/code/fichier, suppression | `lib/db/tickets.ts` | tests unitaires avec faux serveur + faux stockage |
+| Fichiers : envoi différé, téléchargement vérifié (SHA-256), téléchargement automatique, retrait de l'appareil | `lib/sync/files.ts`, tables Dexie `files` / `uploads` (version 2) | tests unitaires + E2E sur Supabase Storage réel |
+| Codes : génération locale (bwip-js), lecture depuis une image (zxing-wasm), plein écran | `lib/codes.ts`, `components/features/tickets/*` | E2E (QR lu depuis une capture, affiché en plein écran) |
+| Écran Billets, trajets sur le planning | `app/(app)/billets`, `components/features/tickets/*`, `DaySection.tsx` | E2E `tickets.e2e.mjs` (12 étapes, 2 voyageurs, hors ligne) |
+
+### Décisions de la phase 3c
+
+- **Un seul onglet « Billets »** réunit trajets et documents (`/transports` et `/documents` y redirigent) : sur place, on
+  cherche un billet, pas une rubrique. Filtre « Tout le groupe » / « Mes billets ».
+- **Fichier d'abord sur l'appareil** : un PDF ou une capture ajouté est conservé dans IndexedDB (consultable tout de
+  suite, même hors ligne), mis en file `uploads`, puis envoyé dans le bucket privé `trip-files`
+  (`{trip_id}/{document_id}/{nom}`) **avant** l'envoi des fiches, au début de chaque synchro. Un envoi déjà fait mais
+  sans réponse (409) est considéré comme réussi. Un refus (format, taille) est conservé et affiché, sans bloquer les fiches.
+- **Disponibilité hors ligne = présence du blob** : l'indicateur « Sur l'appareil » / « En ligne uniquement » /
+  « En attente d'envoi » ne repose sur aucun drapeau déclaratif. Le fichier téléchargé est vérifié par SHA-256.
+- **Téléchargement automatique** après chaque synchro réussie des billets, confirmations et photos qui concernent le
+  voyageur ; les **pièces d'identité restent à la demande** (moins de copies sur les téléphones). Un fichier pas encore
+  envoyé ne peut pas être retiré de l'appareil (ce serait le perdre).
+- **Codes générés sur l'appareil** (bwip-js : QR, Aztec, PDF417, Data Matrix, Code 128, EAN-13, Code 39) : aucun
+  réseau ni fichier nécessaire. Lecture depuis une image avec zxing-wasm, module WebAssembly **servi par l'app**
+  (`public/zxing/`, copié par `scripts/copy-vendor-assets.mjs`) et non par un CDN, pour fonctionner hors ligne.
+- **Plein écran** : fond blanc, code agrandi, API Fullscreen et Wake Lock quand le navigateur les accepte. La
+  luminosité de l'écran ne peut pas être forcée depuis le web : non simulée.
+- **Voyageurs concernés** : simple classement (« Mes billets »), pas une restriction d'accès — les droits restent égaux.
+- **Supprimer un trajet** conserve ses billets (détachés). Supprimer un document est logique (restaurable) ; l'objet
+  Storage est conservé.
+- **Aperçu PDF** : lecteur intégré du navigateur (`<object>`) + boutons « Ouvrir » / « Enregistrer ». Le rendu pdf.js
+  pour les PWA iOS est prévu en phase 5. Les images HEIC non affichables hors Safari sont signalées comme telles.
+- Le statut de synchro compte les **fichiers en attente** : un fichier non envoyé n'est jamais présenté comme
+  « synchronisé », et la déconnexion avertit avant de le perdre.
+
+### Bugs trouvés par les tests et corrigés
+
+1. Nom de fichier dangereux (`../`) : seul le dernier segment est conservé.
+2. Libellé « Lien » ambigu entre le type de document et le champ d'adresse (lecteurs d'écran) : champ renommé
+   « Adresse du lien ».
+
+## 13. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

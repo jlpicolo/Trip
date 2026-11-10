@@ -12,8 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Fichier tiers copié au build (scripts/copy-maplibre-worker.mjs).
+    // Fichier tiers copié au build (scripts/copy-vendor-assets.mjs).
     "public/maplibre/**",
+    "public/zxing/**",
   ]),
 ]);
 

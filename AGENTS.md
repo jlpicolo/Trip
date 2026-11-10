@@ -68,13 +68,17 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - Toute écriture de données de voyage passe par `getEngine().insert/update/remove` (jamais d'écriture
   directe dans Supabase ni dans Dexie depuis un composant).
 - Les listes affichées filtrent `deleted_at` (suppressions logiques conservées localement).
+- Fichiers des documents : toujours via `lib/db/tickets.ts` (ajout) et `lib/sync/files.ts` (envoi, téléchargement).
+  « Disponible hors ligne » = présence du blob dans la table `files`, jamais un drapeau.
+- Fichiers tiers chargés par URL fixe (worker MapLibre, WebAssembly zxing) : copiés dans `public/` par
+  `scripts/copy-vendor-assets.mjs`, exclus du `proxy.ts`, du lint et de Git ; jamais chargés depuis un CDN.
 - Ne jamais retirer la règle `turbopack.rules["*.css"]` de `next.config.ts` (compilation Tailwind).
 
 ## Tests
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte), hors ligne / retour réseau,
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets), hors ligne / retour réseau,
   absence de débordement horizontal (app démarrée sur :3000). Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).

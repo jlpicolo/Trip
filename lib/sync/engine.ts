@@ -18,6 +18,8 @@ import {
 export interface SyncStatus {
   syncing: boolean;
   pending: number;
+  /** Fichiers ajoutés sur cet appareil et pas encore envoyés. */
+  pendingFiles: number;
   conflicts: number;
   rejected: number;
   lastSyncAt: string | null;
@@ -40,6 +42,7 @@ export class SyncEngine {
   private status: SyncStatus = {
     syncing: false,
     pending: 0,
+    pendingFiles: 0,
     conflicts: 0,
     rejected: 0,
     lastSyncAt: null,
@@ -54,6 +57,8 @@ export class SyncEngine {
     readonly db: LocalDb,
     private remote: RemoteApi,
     private now: () => Date = () => new Date(),
+    /** Envoi des fichiers en attente, AVANT les fiches : les autres voient ainsi le fichier dès la fiche. */
+    private uploadFiles?: () => Promise<void>,
   ) {}
 
   // ---------------------------------------------------------------- état
@@ -69,13 +74,14 @@ export class SyncEngine {
   }
 
   private async refreshStatus(patch: Partial<SyncStatus> = {}) {
-    const [pending, conflicts, rejected, lastSyncAt] = await Promise.all([
+    const [pending, pendingFiles, conflicts, rejected, lastSyncAt] = await Promise.all([
       this.db.outbox.count(),
+      this.db.uploads.count(),
       this.db.conflicts.count(),
       this.db.rejected.count(),
       this.db.getMeta<string>("lastSyncAt"),
     ]);
-    this.status = { ...this.status, pending, conflicts, rejected, lastSyncAt: lastSyncAt ?? null, ...patch };
+    this.status = { ...this.status, pending, pendingFiles, conflicts, rejected, lastSyncAt: lastSyncAt ?? null, ...patch };
     this.listeners.forEach((fn) => fn(this.status));
   }
 
@@ -180,6 +186,7 @@ export class SyncEngine {
   private async runSync(tripId: string | null) {
     await this.refreshStatus({ syncing: true, lastError: null });
     try {
+      await this.uploadFiles?.();
       await this.pushAll();
       if (tripId) await this.pull(tripId);
       await this.db.setMeta("lastSyncAt", this.now().toISOString());

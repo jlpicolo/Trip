@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { getEngine } from "@/lib/sync/client";
+import { getEngine, getFileSync } from "@/lib/sync/client";
 import { createSyncScheduler } from "@/lib/sync/scheduler";
 import { getLocalDb } from "@/lib/db/schema";
 import { ACTIVE_TRIP_KEY, useActiveTripId } from "@/hooks/useTrip";
@@ -23,12 +23,18 @@ async function resolveTripId(): Promise<string | null> {
 /**
  * Déclencheurs : ouverture, changement de voyage actif, retour du réseau, retour au
  * premier plan, et modifications en attente (voir createSyncScheduler). Pas de polling.
+ * Après chaque synchro, les billets qui concernent le voyageur sont téléchargés.
  */
-export function AutoSync() {
+export function AutoSync({ userId }: { userId: string }) {
   const activeTripId = useActiveTripId();
 
   useEffect(() => {
-    const scheduler = createSyncScheduler({ engine: getEngine(), resolveTripId, isOnline: () => navigator.onLine });
+    const scheduler = createSyncScheduler({
+      engine: getEngine(),
+      resolveTripId,
+      isOnline: () => navigator.onLine,
+      afterSync: async (tripId) => tripId && (await getFileSync().autoDownload(tripId, userId)),
+    });
     const run = () => void scheduler.runNow();
     const onVisible = () => document.visibilityState === "visible" && run();
     run();
@@ -39,7 +45,7 @@ export function AutoSync() {
       window.removeEventListener("online", run);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [activeTripId]);
+  }, [activeTripId, userId]);
 
   return null;
 }

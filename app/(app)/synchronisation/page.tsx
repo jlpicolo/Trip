@@ -67,6 +67,8 @@ export default function SyncPage() {
           <dd>{status.lastSyncAt ? formatRelative(status.lastSyncAt) : "Jamais"}</dd>
           <dt className="text-dim">En attente d&apos;envoi</dt>
           <dd>{status.pending}</dd>
+          <dt className="text-dim">Fichiers à envoyer</dt>
+          <dd>{status.pendingFiles}</dd>
           <dt className="text-dim">À vérifier</dt>
           <dd>{status.conflicts + status.rejected}</dd>
         </dl>

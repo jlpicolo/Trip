@@ -46,7 +46,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <AutoSync />
+      <AutoSync userId={session.userId} />
       <SideNav />
       <div className="min-w-0 flex-1">
         <header className="safe-top sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur">

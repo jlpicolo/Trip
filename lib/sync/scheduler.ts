@@ -4,6 +4,8 @@ export interface SchedulerOptions {
   engine: SyncEngine;
   resolveTripId: () => Promise<string | null>;
   isOnline: () => boolean;
+  /** Tâche annexe après une synchro réussie (téléchargement des billets). */
+  afterSync?: (tripId: string | null) => Promise<unknown>;
   debounceMs?: number;
   maxBackoffMs?: number;
 }
@@ -14,7 +16,7 @@ export interface SchedulerOptions {
  * faites PENDANT une synchronisation (sinon elles resteraient bloquées jusqu'au
  * prochain retour au premier plan). Erreurs serveur : nouvel essai avec délai croissant.
  */
-export function createSyncScheduler({ engine, resolveTripId, isOnline, debounceMs = 2000, maxBackoffMs = 60_000 }: SchedulerOptions) {
+export function createSyncScheduler({ engine, resolveTripId, isOnline, afterSync, debounceMs = 2000, maxBackoffMs = 60_000 }: SchedulerOptions) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let failures = 0;
   let stopped = false;
@@ -26,7 +28,9 @@ export function createSyncScheduler({ engine, resolveTripId, isOnline, debounceM
     try {
       // L'annuaire d'abord : sur un appareil neuf, c'est lui qui fait connaître le voyage à récupérer.
       await engine.refreshDirectory();
-      await engine.sync(await resolveTripId());
+      const tripId = await resolveTripId();
+      await engine.sync(tripId);
+      if (!engine.getStatus().lastError) await afterSync?.(tripId);
     } catch {
       // État exposé par le moteur ; la reprise est gérée par onStatus.
     }

@@ -1,11 +1,6 @@
-import { UpcomingSection } from "@/components/app/UpcomingSection";
+import { redirect } from "next/navigation";
 
-export const metadata = { title: "Transports" };
-
+// Trajets et documents sont réunis dans l'onglet Billets.
 export default function Page() {
-  return (
-    <UpcomingSection title="Transports" icon="train" phase="phase 3">
-      Vols, trains, shinkansen, bus et ferries avec billets et QR codes consultables hors ligne.
-    </UpcomingSection>
-  );
+  redirect("/billets");
 }

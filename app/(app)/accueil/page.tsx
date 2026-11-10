@@ -12,6 +12,8 @@ import { activitiesOfTrip, daysOfTrip, placesOfTrip } from "@/lib/db/planning";
 import { documentsOfTrip, transportsOfTrip } from "@/lib/db/tickets";
 import { staysOfTrip } from "@/lib/db/stays";
 import { entriesOfTrip } from "@/lib/db/journal";
+import { expensesOfTrip, settlementsOfTrip } from "@/lib/db/budget";
+import { balances } from "@/lib/budget/balances";
 import { nowHm, preparationStats } from "@/lib/dashboard";
 import { nextTransport, transportTitle, TRANSPORT_META } from "@/lib/tickets";
 import { stayForNight, sortStays } from "@/lib/stays";
@@ -20,7 +22,7 @@ import type { TripDocument } from "@/lib/types/tickets";
 import { describeGroup, groupActivity } from "@/lib/activity";
 import { categoryMeta, hm } from "@/lib/planning";
 import { cityKanji, sameCity } from "@/lib/japan";
-import { formatDate, formatRelative, todayIn, tripDates, tripPhase } from "@/lib/formatters";
+import { formatDate, formatMoney, formatRelative, todayIn, tripDates, tripPhase } from "@/lib/formatters";
 import type { SyncedRow } from "@/lib/types/sync";
 
 function greeting(now = new Date()) {
@@ -38,9 +40,10 @@ export default function DashboardPage() {
   const [code, setCode] = useState<TripDocument | null>(null);
   const closeCode = useCallback(() => setCode(null), []);
   const data = useLiveQuery(async () => {
-    const [activity, days, log, transports, stays, docs, entries, activities, places] = await Promise.all([
+    const [activity, days, log, transports, stays, docs, entries, activities, places, expenses, settlements] = await Promise.all([
       nextActivity(db, trip.id, today), daysOfTrip(db, trip.id), recentActivity(db, trip.id, 30), transportsOfTrip(db, trip.id),
       staysOfTrip(db, trip.id), documentsOfTrip(db, trip.id), entriesOfTrip(db, trip.id), activitiesOfTrip(db, trip.id), placesOfTrip(db, trip.id),
+      expensesOfTrip(db, trip.id), settlementsOfTrip(db, trip.id),
     ]);
     const transport = nextTransport(transports, today, nowHm(trip.timezone));
     const tonight = stayForNight(stays, today);
@@ -50,12 +53,16 @@ export default function DashboardPage() {
       freeDays: new Set([...days.values()].filter((d) => d.is_free).map((d) => d.date)), stays, entries,
       planned: new Set(activities.map((a) => a.journal_entry_id).filter((x): x is string => !!x)),
     });
+    const budget = expenses.length === 0 ? null : {
+      total: expenses.reduce((sum, e) => sum + e.base_amount_minor, 0),
+      mine: balances([userId], expenses, settlements).get(userId) ?? 0,
+    };
     return {
-      activity, days, log, transport, stay, tonight: !!tonight, prep, transportCount: transports.length,
+      budget, activity, days, log, transport, stay, tonight: !!tonight, prep, transportCount: transports.length,
       codes: transport ? docs.filter((d) => d.transport_id === transport.id && d.kind === "code") : [],
       favorites: [...places.values()].filter((p) => p.is_favorite).sort((a, b) => a.name.localeCompare(b.name, "fr")),
     };
-  }, [trip.id, today, trip.start_date, trip.end_date, trip.timezone]);
+  }, [trip.id, today, trip.start_date, trip.end_date, trip.timezone, userId]);
   const nameOf = (id: string | null) => travelers?.find((t) => t.id === id)?.display_name ?? "Un voyageur";
   const colorOf = (id: string | null) => travelers?.find((t) => t.id === id)?.color ?? "var(--text-mute)";
 
@@ -166,6 +173,19 @@ export default function DashboardPage() {
               detail={data.prep.mustSeeUnplanned.slice(0, 3).map((e) => e.title).join(" · ")} />
           </ul>
         </section>
+      )}
+
+      {data?.budget && (
+        <Link href="/budget" className="flex items-center gap-3 rounded-2xl border border-line bg-card px-4 py-3 hover:bg-elev" aria-label="Budget">
+          <Icon name="wallet" size={20} className="text-sun" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm">Pot commun : <strong>{formatMoney(data.budget.total, trip.base_currency)}</strong></span>
+            <span className={`block text-xs ${data.budget.mine > 0 ? "text-teal" : data.budget.mine < 0 ? "text-coral" : "text-dim"}`}>
+              {data.budget.mine > 0 ? `On vous doit ${formatMoney(data.budget.mine, trip.base_currency)}` : data.budget.mine < 0 ? `Vous devez ${formatMoney(-data.budget.mine, trip.base_currency)}` : "Vous êtes à jour"}
+            </span>
+          </span>
+          <Icon name="chevron" size={18} className="text-mute" />
+        </Link>
       )}
 
       {data && data.favorites.length > 0 && (

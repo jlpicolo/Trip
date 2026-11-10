@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 5 (hors ligne et installation) terminée** — prochaine : phase 4 (budget). Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 4 (budget) terminée** — prochaine : phase 6 (finalisation). Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 10 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -177,7 +177,7 @@ Aucun voyageur n'a de privilège supplémentaire.
 | Fond de carte (hors ligne) | **OpenFreeMap** mis en cache ville par ville par le service worker | non | aucun hébergement à gérer ; les serveurs `tile.openstreetmap.org` interdisent ce téléchargement, OpenFreeMap n'impose pas de limite |
 | Recherche de lieux | **Nominatim** (OSM) | non | gratuit, 1 req/s max, pas d'autocomplétion → recherche sur validation. Les adresses japonaises sont mal couvertes : saisie manuelle des coordonnées / collage d'un lien Google Maps en secours |
 | Itinéraires | **Liens externes** Google Maps / Apple Maps | non | pas d'API de calcul d'itinéraire : on n'invente pas de temps de trajet |
-| Taux EUR/JPY | **Frankfurter** (données BCE) | non | gratuit, sans clé. **Taux de référence quotidien** (jours ouvrés), affiché avec sa date : jamais présenté comme « temps réel ». Taux manuel possible |
+| Taux EUR/JPY | **Frankfurter** (`api.frankfurter.dev`, données BCE) | non | gratuit, sans clé. **Taux de référence quotidien** (jours ouvrés), affiché avec sa date : jamais présenté comme « temps réel ». Taux manuel possible |
 | Emails | **Aucun** (décision des voyageurs) | — | comptes et mots de passe transmis par l'organisateur ; un SMTP (Brevo, Resend…) pourra être ajouté plus tard |
 | Réservations (Booking, Airbnb…) | **Aucune intégration** | — | pas d'API officielle ouverte : liens externes + import PDF/captures |
 
@@ -263,7 +263,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **3d. Hébergements** ✅ | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
 | **3e. Carnet** ✅ | catégories, priorités, conversion en activité sans ressaisie (photos abandonnées : choix des voyageurs) | E2E conversion |
 | **3f. Dashboard** ✅ | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
-| **4. Budget** | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
+| **4. Budget** ✅ | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
 | **5. Hors ligne avancé** ✅ | installation (manifest, service worker), réouverture sans réseau, cartes hors ligne par ville, persistance, « tout re-télécharger » — **aucun iPhone dans le groupe : pas de contournements iOS/Safari** | E2E en mode avion simulé (Playwright `offline`) |
 | **6. Finalisation** | export JSON/CSV, duplication de voyage, accessibilité, audit sécurité, Lighthouse PWA, documentation de déploiement | checklist complète |
 
@@ -581,7 +581,39 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
 - **PMTiles auto-hébergés abandonnés** (prévus initialement) : inutiles avec ce cache, et pas d'hébergement à gérer.
 - **Tests E2E sur build de production** (`npm run build && npm start`) : le service worker est désactivé en dev.
 
-## 17. Décisions prises (détails secondaires)
+## 17. Réalisé en phase 4 — Budget
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Conversion en unités mineures, plus fort reste déterministe | `lib/budget/money.ts` | tests unitaires (JPY sans décimale, 1 centime, flottants) |
+| 4 modes de répartition : égal, parts, pourcentages, montants exacts | `lib/budget/split.ts`, migration `20261111000000_expense_percent.sql` | tests unitaires + E2E (contrôle serveur `tg_validate_expense`) |
+| Soldes, remboursements en nombre minimal de virements (≤ 12 personnes, glouton au-delà) | `lib/budget/balances.ts` | tests unitaires |
+| Taux BCE (Frankfurter), taux manuel partagé, libellé daté, taux figé par dépense | `lib/fx.ts`, `components/features/budget/useBudget.ts` | tests unitaires + E2E (vrai service) |
+| Écritures : dépenses, remboursements, dépenses personnelles (propriétaire seul) | `lib/db/budget.ts`, `lib/validation/budget.ts` | tests unitaires avec faux serveur |
+| Page Budget (pot commun, mes dépenses, convertisseur), résumé sur l'accueil | `app/(app)/budget`, `components/features/budget/*` | E2E `budget.e2e.mjs` (10 étapes, 3 voyageurs) |
+
+### Décisions de la phase 4
+
+- **Taux figé à la saisie** : chaque dépense garde son taux (« 1 JPY = 0,005638 EUR ») et son montant converti ; les
+  soldes ne bougent pas quand le taux du jour change. Le taux est prérempli (taux connu) et modifiable (taux de la carte).
+- **Taux affiché avec sa source et sa date** : « Taux de référence BCE du 10 novembre 2026 », « ancien » au-delà de
+  4 jours ; jamais « temps réel ». Mise à jour au plus une fois par jour en ligne ; hors ligne, dernier taux connu.
+  **Taux manuel** stocké dans les réglages du voyage (`trips.settings.manual_fx_rate`), donc partagé par le groupe.
+- **Arrondis** : conversion au plus proche (minimum 1 unité) puis plus fort reste, restes égaux départagés par
+  identifiant : les 4 téléphones calculent les mêmes centimes ; le serveur vérifie que la somme est exacte.
+- **4ᵉ mode « pourcentages »** ajouté à la base (le schéma initial n'en prévoyait que 3) ; un voyageur décoché ou à
+  part nulle ne paie rien.
+- **Remboursements** : suggestions calculées, « Marquer payé » enregistre un remboursement (partiel possible,
+  annulable) ; montants en devise de base.
+- **Dépenses personnelles** : table séparée, jamais dans le pot commun ; seul l'auteur les voit dans « Mes dépenses »
+  et peut les modifier (RLS serveur + contrôle local).
+
+### Bugs trouvés par les tests et corrigés
+
+1. Formulaire ouvert avant l'arrivée du taux BCE (première visite) : le taux est désormais rempli dès son arrivée.
+2. Voyageurs connus après l'ouverture du formulaire : ils étaient décochés ; inclus par défaut dans une nouvelle dépense.
+
+## 18. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

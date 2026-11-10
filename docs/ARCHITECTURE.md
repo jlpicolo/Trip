@@ -1,6 +1,6 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 3d (hébergements) terminée**. Document vivant, mis à jour à chaque phase.
+> Statut : **Phase 3e (carnet) terminée**. Document vivant, mis à jour à chaque phase.
 > Dernière mise à jour : 10 novembre 2026.
 
 ## 0. État du dépôt au démarrage
@@ -261,7 +261,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **3b. Carte** ✅ | MapLibre + tuiles en ligne (OpenFreeMap), catégories/icônes, ajout/déplacement de points, recherche Nominatim, filtre par jour, liens itinéraire, lien planning ↔ carte | E2E association activité ↔ lieu |
 | **3c. Transports & documents** ✅ | fiches transport, import PDF/image/capture, lien, QR/code-barres (saisie, scan d'image), plein écran, association voyageurs/journée | E2E billet PDF, affichage QR |
 | **3d. Hébergements** ✅ | fiches, nuits calculées, documents, carte, rattachement aux journées | E2E |
-| **3e. Carnet** | catégories, priorités, photos, conversion en activité sans ressaisie | E2E conversion |
+| **3e. Carnet** ✅ | catégories, priorités, conversion en activité sans ressaisie (photos abandonnées : choix des voyageurs) | E2E conversion |
 | **3f. Dashboard** | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
 | **4. Budget** | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
 | **5. Hors ligne avancé** | téléchargement des documents, cartes hors ligne par ville, écran de conflits, indicateurs, persistance | E2E en mode avion simulé (Playwright `offline`) |
@@ -517,7 +517,26 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
   dans les mêmes conditions ; un lien mène de Billets à l'hébergement et inversement.
 - **Planning** : changement d'hôtel affiché dans l'ordre réel (départ puis arrivée), nuits intermédiaires discrètes.
 
-## 14. Décisions prises (détails secondaires)
+## 14. Réalisé en phase 3e — Carnet
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Catégories (correspondance activité / lieu), priorités, tri, filtres et recherche sans accents | `lib/journal.ts`, `lib/types/journal.ts` | tests unitaires |
+| Validation (titre, lien, GPS / lien Maps) | `lib/validation/journal.ts` | tests unitaires |
+| Écritures : entrée + lieu sur la carte, conversion en activité, suppression | `lib/db/journal.ts` | tests unitaires avec faux serveur |
+| Page Carnet (filtres catégorie, ville, « à planifier », recherche) et fiche | `app/(app)/carnet`, `components/features/journal/*` | E2E `journal.e2e.mjs` (7 étapes, 2 voyageurs) |
+
+### Décisions de la phase 3e
+
+- **Pas de photos** (décision des voyageurs, novembre 2026) : le stockage Supabase gratuit (1 Go) reste réservé
+  aux billets et confirmations. Un lien externe (article, vidéo, fiche Google Maps) remplace l'image.
+- **Priorités** : ★★★ incontournable, ★★ envie, ★ si on a le temps ; regroupement par priorité.
+- **Conversion sans ressaisie** : « Planifier » crée une activité (journée choisie, ou idée sans date) reprenant
+  titre, notes, lien, lieu et une catégorie déduite ; `activities.journal_entry_id` garde l'origine. Une entrée peut
+  être planifiée plusieurs fois ; son état « Planifié · dates » est **calculé** depuis les activités, jamais stocké.
+- **Supprimer une entrée** conserve les activités déjà planifiées et son lieu sur la carte.
+
+## 15. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

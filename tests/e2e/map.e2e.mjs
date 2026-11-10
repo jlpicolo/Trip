@@ -26,6 +26,15 @@ try {
   const b = await ctxB.newPage();
   const { step, done } = stepper({ alice: a, bruno: b });
   const marker = (page, name) => page.locator(`button.jt-marker[aria-label^="${name} ("]`);
+  // Un marqueur peut être regroupé avec ses voisins selon le cadrage : on zoome via le groupe, comme un utilisateur.
+  const openMarker = async (page, name) => {
+    for (let i = 0; i < 6; i++) {
+      if (await marker(page, name).isVisible()) return marker(page, name).click();
+      await page.getByRole("button", { name: /lieux regroupés/ }).first().click();
+      await page.waitForTimeout(900);
+    }
+    throw new Error(`Marqueur « ${name} » introuvable même après zoom`);
+  };
   const listNames = (page) => page.getByRole("list", { name: "Liste des lieux" }).locator("li span.font-semibold").allInnerTexts();
   const dbPlaces = async () => (await admin.from("places").select("id,name,category,lat,lng,is_favorite,source,source_ref,deleted_at").eq("trip_id", trip.tripId)).data;
 
@@ -71,13 +80,16 @@ try {
     await dlg.getByLabel("Nom").fill("Nishiki Market");
     await dlg.getByLabel("Catégorie").selectOption("restaurant");
     await dlg.getByRole("button", { name: "Ajouter le lieu" }).click();
+    // Fermer seulement une fois la fiche enregistrée affichée, sinon elle se rouvre par-dessus la carte.
+    await dlg.getByRole("heading", { name: "Nishiki Market" }).waitFor();
     await dlg.getByRole("button", { name: "Fermer" }).first().click();
-    await marker(a, "Nishiki Market").waitFor();
+    await dlg.waitFor({ state: "detached" });
+    await marker(a, "Nishiki Market").waitFor({ state: "attached" });
     assert.equal((await listNames(a)).length, 3);
   });
 
   await step("ouvrir un lieu depuis son marqueur, le mettre en favori, filtrer", async () => {
-    await marker(a, "Nishiki Market").click();
+    await openMarker(a, "Nishiki Market");
     const dlg = a.getByRole("dialog");
     await dlg.getByRole("button", { name: "Ajouter aux favoris" }).click();
     await dlg.getByRole("button", { name: "Favori" }).waitFor();

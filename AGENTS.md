@@ -72,13 +72,14 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
   « Disponible hors ligne » = présence du blob dans la table `files`, jamais un drapeau.
 - Fichiers tiers chargés par URL fixe (worker MapLibre, WebAssembly zxing) : copiés dans `public/` par
   `scripts/copy-vendor-assets.mjs`, exclus du `proxy.ts`, du lint et de Git ; jamais chargés depuis un CDN.
+- Pas de photos dans l'app (décision des voyageurs) : le stockage gratuit est réservé aux billets et confirmations.
 - Ne jamais retirer la règle `turbopack.rules["*.css"]` de `next.config.ts` (compilation Tailwind).
 
 ## Tests
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements), hors ligne / retour réseau,
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements + carnet), hors ligne / retour réseau,
   absence de débordement horizontal (app démarrée sur :3000). Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).
 - `npm run test:db` : migrations + tests SQL (RLS, Storage, synchro). Requiert PostgreSQL (PGHOST…).

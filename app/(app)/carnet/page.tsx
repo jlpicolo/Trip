@@ -1,11 +1,7 @@
-import { UpcomingSection } from "@/components/app/UpcomingSection";
+import { JournalPage } from "@/components/features/journal/JournalPage";
 
-export const metadata = { title: "Carnet de voyage" };
+export const metadata = { title: "Carnet" };
 
 export default function Page() {
-  return (
-    <UpcomingSection title="Carnet de voyage" icon="book" phase="phase 3">
-      Bonnes adresses, spécialités, boutiques et idées, transformables en activités.
-    </UpcomingSection>
-  );
+  return <JournalPage />;
 }

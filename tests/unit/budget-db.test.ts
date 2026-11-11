@@ -3,7 +3,7 @@ import { LocalDb } from "@/lib/db/schema";
 import { SyncEngine } from "@/lib/sync/engine";
 import { deletePersonal, expensesOfTrip, personalOfTrip, recordSettlement, saveExpense, savePersonal, settlementsOfTrip } from "@/lib/db/budget";
 import { balances, settleUp } from "@/lib/budget/balances";
-import { effectiveRate, fetchEcbRate, FxOfflineError, rateAgeDays, rateLabel, rateToBase } from "@/lib/fx";
+import { checkedLabel, effectiveRate, fetchEcbRate, FxOfflineError, rateAgeDays, rateLabel, rateToBase } from "@/lib/fx";
 import { expenseSchema, personalSchema, type ExpenseForm } from "@/lib/validation/budget";
 import type { KnownRate } from "@/lib/types/budget";
 import { FakeServer } from "../helpers/fake-server";
@@ -36,6 +36,10 @@ describe("taux de change", () => {
     expect(rateLabel(ecb, "2026-11-12", fmt)).toBe("Taux de référence BCE du 2026-11-10");
     expect(rateLabel(ecb, "2026-11-20", fmt)).toMatch(/ancien/);
     expect(rateAgeDays(ecb, "2026-11-13")).toBe(3);
+    // Taux de la veille vérifié aujourd'hui : on le dit, avec l'heure et la raison.
+    const checked = { ...ecb, fetched_at: "2026-11-11T10:42:00.000Z" };
+    expect(checkedLabel(checked, new Date("2026-11-11T12:00:00.000Z"), () => "11:42")).toMatch(/^Vérifié aujourd'hui à 11:42 · la BCE publie un seul taux par jour ouvré, vers 16 h/);
+    expect(checkedLabel(checked, new Date("2026-11-14T12:00:00.000Z"), () => "x")).toMatch(/^Vérifié le 11 novembre/);
   });
 });
 

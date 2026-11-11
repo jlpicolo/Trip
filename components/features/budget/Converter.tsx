@@ -7,7 +7,7 @@ import { Field } from "@/components/ui/Field";
 import { convertMinor } from "@/lib/budget/money";
 import { formatDate, formatMoney, todayIn } from "@/lib/formatters";
 import { minorToInput, parseAmountToMinor } from "@/lib/money";
-import { formatRate, rateLabel } from "@/lib/fx";
+import { checkedLabel, formatRate, rateLabel } from "@/lib/fx";
 import { parseRate } from "@/lib/validation/budget";
 import type { KnownRate } from "@/lib/types/budget";
 import type { Trip } from "@/lib/types/trip";
@@ -45,9 +45,14 @@ export function Converter({ trip, known, loading, error, onRefresh, onManual }: 
         {result !== null ? formatMoney(result, dst) : <span className="text-mute">— {dst}</span>}
       </p>
       {known ? (
-        <p className="text-xs text-dim">
-          1 {base} = {formatRate(known.rate)} {quote} · {rateLabel(known, today, fmtDay)}
-        </p>
+        <div className="flex flex-col gap-1">
+          <p className="text-xs text-dim">
+            1 {base} = {formatRate(known.rate)} {quote} · {rateLabel(known, today, fmtDay)}
+          </p>
+          {known.source === "ecb" && (
+            <p className="text-xs text-mute" aria-live="polite">{loading ? "Vérification auprès de la BCE…" : checkedLabel(known, new Date(), (d) => d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}</p>
+          )}
+        </div>
       ) : (
         <p className="text-xs text-warning">Aucun taux connu sur cet appareil : connectez-vous une fois, ou saisissez un taux manuel.</p>
       )}

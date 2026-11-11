@@ -66,3 +66,14 @@ export function rateLabel(known: KnownRate, today: string, formatDate: (iso: str
 export function formatRate(rate: number): string {
   return rate.toLocaleString("fr-FR", { maximumSignificantDigits: rate >= 1 ? 6 : 4 });
 }
+
+/**
+ * Explication affichée après une vérification : la BCE ne publie qu'un taux par jour ouvré (vers 16 h,
+ * heure de Paris). Sans ce message, un taux daté de la veille fait croire que l'actualisation a échoué.
+ */
+export function checkedLabel(known: KnownRate, now: Date, formatTime: (d: Date) => string): string {
+  const checked = new Date(known.fetched_at);
+  const sameDay = checked.toDateString() === now.toDateString();
+  const when = sameDay ? `aujourd'hui à ${formatTime(checked)}` : `le ${checked.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+  return `Vérifié ${when} · la BCE publie un seul taux par jour ouvré, vers 16 h (heure de Paris) : le taux du jour n'apparaît qu'ensuite.`;
+}

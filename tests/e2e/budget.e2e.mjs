@@ -149,6 +149,8 @@ try {
   await step("convertisseur : taux BCE daté, conversion, taux manuel partagé", async () => {
     await a.getByRole("tab", { name: "Convertisseur" }).click();
     await a.getByText(/Taux de référence BCE du/).waitFor();
+    await a.getByRole("button", { name: "Mettre à jour (BCE)" }).click();
+    await a.getByText(/^Vérifié aujourd'hui à \d{2}:\d{2} · la BCE publie un seul taux par jour ouvré/).waitFor();
     await a.getByLabel("Montant en JPY").fill("10000");
     await a.getByText(/^\d+,\d{2}\s€$/).waitFor();
     await a.getByText("Taux manuel (partagé avec le groupe)").click();

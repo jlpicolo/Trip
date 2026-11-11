@@ -1,9 +1,10 @@
 /**
  * Mode Parcours de la carte : ordre du planning, couleurs par jour, distances à vol d'oiseau, gares et
- * lignes (vrai service Overpass / OpenStreetMap, gardées pour le hors ligne), liens Google Maps.
+ * lignes (échec du service simulé, puis vraie réponse Overpass enregistrée, gardée hors ligne), liens Google Maps.
  * Prérequis : app démarrée en production.
  */
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { BASE, SHOTS, admin, assertNoHorizontalScroll, cleanup, createTraveler, createTrip, eventually, launch, login, stepper } from "./helpers.mjs";
 
 const users = [];
@@ -63,18 +64,27 @@ try {
     assert.match(whole, /waypoints=.+%7C.+%7C.+&travelmode=walking$/);
   });
 
+  await step("service des gares indisponible : message clair et « Réessayer »", async () => {
+    // L'instance publique d'Overpass est souvent saturée (et injoignable depuis certains réseaux) : on teste
+    // d'abord l'échec, déterministe, puis une vraie réponse Overpass enregistrée (Nezu / Ueno, novembre 2026).
+    await a.route(/overpass-api\.de/, (r) => r.abort("connectionrefused"));
+    await a.reload();
+    await a.getByRole("alert").filter({ hasText: "Service des gares (OpenStreetMap) indisponible" }).waitFor({ timeout: 60_000 });
+    await day(13).getByText("Gares proches indisponibles pour le moment.").first().waitFor();
+  });
+
   await step("gares et lignes (OpenStreetMap) aux extrémités du tronçon long, conservées hors ligne", async () => {
+    await a.unroute(/overpass-api\.de/);
+    await a.route(/overpass-api\.de/, (r) => r.fulfill({ status: 200, contentType: "application/json",
+      headers: { "access-control-allow-origin": "*" }, body: readFileSync(new URL("./fixtures/overpass-ueno.json", import.meta.url)) }));
+    await a.getByRole("button", { name: "Réessayer" }).click();
     const box = day(13).getByTestId("transit").first();
-    // L'instance publique d'Overpass est parfois saturée : l'app le dit et propose « Réessayer ».
-    await eventually(async () => {
-      const retry = a.getByRole("button", { name: "Réessayer" });
-      if (await retry.isVisible()) await retry.click();
-      assert.ok(await box.isVisible());
-    }, { timeout: 240_000, interval: 5_000 });
+    await box.waitFor({ timeout: 30_000 });
     const text = await box.innerText();
     assert.match(text, /Gares près du départ :\s*\S+/);
     assert.match(text, /Gares près de l'arrivée :\s*\S+/);
-    assert.ok(await box.locator("span[title]").count() > 0, "au moins une ligne affichée");
+    assert.match(text, /Nezu/);
+    assert.match(text, /C Chiyoda/);
     await a.screenshot({ path: `${SHOTS}/parcours.png`, fullPage: true });
 
     await eventually(async () => assert.ok(await a.evaluate(async () => {
@@ -82,6 +92,7 @@ try {
       const key = (await caches.keys()).find((k) => k.startsWith("jt-shell-"));
       return !!key && !!(await (await caches.open(key)).match("/carte"));
     }), "précache terminé"), { timeout: 90_000, interval: 1000 });
+    await a.unroute(/overpass-api\.de/);
     await a.context().setOffline(true);
     await a.reload();
     await day(13).getByTestId("transit").first().waitFor({ timeout: 30_000 });

@@ -53,7 +53,7 @@ try {
         await p.getByRole("heading", { level: 1 }).first().waitFor({ timeout: 20_000 });
         await p.waitForTimeout(path.startsWith("/carte") ? 3000 : 800);
         // Parcours : attendre les gares (ou le message d'indisponibilité) pour les auditer aussi.
-        if (path.includes("parcours")) await p.locator('[data-testid="transit"], [role="alert"]').first().waitFor({ timeout: 60_000 });
+        if (path.includes("parcours")) await p.locator('[data-testid="transit"], [role="alert"]').first().waitFor({ timeout: 150_000 });
         report.push(...(await audit(p, `${path} (${theme})`)));
       });
     }

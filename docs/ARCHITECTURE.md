@@ -669,7 +669,7 @@ pas été mesurées séparément.
 | Préparation de l'import : colonnes reconnues par synonymes, catégories, ville déduite, contrôle « au Japon » (colonnes inversées corrigées), précision approximative signalée, doublons à 150 m | `lib/import/places.ts` | tests unitaires |
 | Import (lieux + entrées du carnet facultatives) via le moteur de synchro | `lib/db/import.ts`, `components/features/map/ImportPlaces.tsx` | E2E `import.e2e.mjs` |
 | Parcours par journée : ordre du planning, hôtel du matin → hôtel du soir, 10 couleurs de jour, trajets entre villes (Billets) | `lib/route-plan.ts`, `TripMap.tsx`, `RoutePanel.tsx`, `/carte?parcours=` | tests unitaires + E2E `route.e2e.mjs` |
-| Gares proches et lignes (code, nom, couleur officielle), trajet « sans changement » | `lib/transit.ts`, `components/features/map/useTransit.ts` | tests unitaires + E2E (vrai service, puis hors ligne) |
+| Gares proches et lignes (code, nom, couleur officielle), trajet « sans changement » | `lib/transit.ts`, `components/features/map/useTransit.ts` | tests unitaires (dont une vraie réponse Overpass) + E2E : échec simulé (« Réessayer »), réponse Overpass réelle enregistrée (`tests/e2e/fixtures/`), puis hors ligne |
 
 ### Décisions
 
@@ -697,6 +697,9 @@ pas été mesurées séparément.
 1. **Carte : page en erreur en revenant du planning** (`?lieu=`) : la couche des tracés était ajoutée pendant le
    chargement du style de la carte recréée. Rien n'est ajouté en mode Lieux, et en Parcours on attend que le style soit prêt.
 2. Trois boutons « Réessayer » identiques (un par tronçon) : un seul message pour tout le parcours.
+3. **Recherche des gares sans fin** sur une connexion bloquée (aucune réponse, aucune erreur) : chaque essai est
+   abandonné après 30 s. Le test E2E n'appelle plus le vrai service (injoignable depuis l'environnement de test) :
+   il rejoue une réponse réelle enregistrée ; le vrai service a été vérifié à la main sur Tokyo, Kyoto et Osaka.
 
 ## 20. Décisions prises (détails secondaires)
 

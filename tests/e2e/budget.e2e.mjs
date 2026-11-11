@@ -121,6 +121,8 @@ try {
   });
 
   await step("Bruno voit le même total et les mêmes soldes", async () => {
+    // Synchro sans interrogation permanente : on attend que la dépense d'Alice soit arrivée au serveur.
+    await eventually(async () => assert.ok((await dbExpenses()).some((x) => x.title === "Taxi"), "Taxi envoyé"));
     await login(b, bruno);
     await b.goto(`${BASE}/budget`);
     await b.getByRole("button", { name: "Ouvrir « Taxi »" }).waitFor({ timeout: 30_000 });

@@ -21,12 +21,33 @@ const PRECACHE_HEADER = { "x-jt-precache": "1" };
 const STATIC_RE = /(?:\/_next\/)?static\/(?:immutable\/)?(?:chunks|media|css)\/[\w\-./]+?\.(?:js|css|woff2?|png|svg|wasm)(?:\?dpl=[\w-]+)?(?=["'\s)\\]|$)/g;
 const staticUrl = (m) => (m.startsWith("/_next/") ? m : `/_next/${m}`);
 
+/**
+ * Polices : seules les tranches qui couvrent l'alphabet latin. Les polices japonaises de Google
+ * sont découpées en centaines de tranches (~20 Mo) ; hors ligne, les kanji utilisent celles du téléphone.
+ */
+function latinFonts(css, cssUrl) {
+  const out = [];
+  for (const block of css.match(/@font-face\s*\{[^}]*\}/g) ?? []) {
+    const range = block.match(/unicode-range:([^;}]*)/);
+    const latin = !range || range[1].split(",").some((r) => {
+      const [a, z] = r.trim().replace(/^u\+/i, "").split("-");
+      return parseInt(a, 16) <= 0x41 && parseInt(z ?? a, 16) >= 0x41;
+    });
+    if (!latin) continue;
+    for (const m of block.matchAll(/url\(["']?([^"')]+\.woff2?)["']?\)/g)) out.push(new URL(m[1], new URL(cssUrl, self.location.origin)).pathname);
+  }
+  return out;
+}
+
 async function precache() {
   const shell = await caches.open(SHELL);
   const stat = await caches.open(STATIC);
   const assets = new Set();
   const found = (text) => {
-    for (const m of text.matchAll(STATIC_RE)) assets.add(staticUrl(m[0]));
+    for (const m of text.matchAll(STATIC_RE)) {
+      const url = staticUrl(m[0]);
+      if (!/\.woff2?($|\?)/.test(url)) assets.add(url);
+    }
   };
   for (const route of ROUTES) {
     const res = await fetch(route, { headers: PRECACHE_HEADER, cache: "no-store" });
@@ -53,7 +74,12 @@ async function precache() {
         await stat.put(url, fresh.clone());
         res = fresh;
       }
-      if (/\.(js|css)$/.test(url)) found(await res.text());
+      if (/\.js($|\?)/.test(url)) found(await res.text());
+      if (/\.css($|\?)/.test(url)) {
+        const css = await res.text();
+        found(css);
+        for (const font of latinFonts(css, url)) assets.add(font);
+      }
     }
   };
   await Promise.all(Array.from({ length: 8 }, worker));

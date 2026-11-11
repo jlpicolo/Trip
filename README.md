@@ -4,12 +4,17 @@ Application web collaborative (PWA, offline-first) de préparation et de suivi d
 groupe de voyageurs aux droits égaux. Premier voyage : Japon, 9–30 mars 2027, 4 voyageurs.
 Le nom, les dates, destinations et devises sont des réglages du voyage : l'application est réutilisable.
 
-**État : phase 3b (carte) terminée — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) et [docs/REPRISE-ONE-FOR-ALL.md](docs/REPRISE-ONE-FOR-ALL.md).**
+**État : toutes les phases terminées (planning, carte, billets, hébergements, carnet, accueil, budget, hors ligne,
+finalisation) — voir [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).**
+
+Sections : Accueil · Planning · Carte · Billets (trajets, PDF, QR codes) · Budget (pot commun, dépenses perso,
+convertisseur EUR/JPY) · Hébergements · Carnet · Paramètres (hors ligne, export, duplication de voyage).
+Installable (PWA) et utilisable sans réseau ; synchronisation entre les téléphones au retour du réseau.
 
 ## Stack
 
 Next.js 16 (App Router) · TypeScript strict · Tailwind CSS 4 · Supabase (Postgres + RLS, Auth, Storage)
-· Dexie/IndexedDB · Service Worker manuel · MapLibre GL + PMTiles (OpenStreetMap)
+· Dexie/IndexedDB · Service Worker manuel · MapLibre GL (OpenFreeMap / OpenStreetMap)
 
 ## Production
 
@@ -30,7 +35,7 @@ npm run dev
 |---|---|---|
 | `npm test` | unitaires : moteur de synchro, fusion, dates, validation | aucun |
 | `npm run test:integration` | moteur de synchro contre Supabase réel | `.env.local` (clé secrète) |
-| `npm run test:e2e` | navigateur : 2 voyageurs, collaboration, planning, carte, hors ligne, déconnexion | app lancée (`npm run build && npm run start`), Playwright + Chromium |
+| `npm run test:e2e` | navigateur, 10 scénarios : collaboration, planning, carte, billets, hébergements, carnet, accueil, hors ligne, budget, accessibilité (axe, WCAG 2.1 AA) | app lancée **en production** (`npm run build && npm run start`), Playwright + Chromium |
 | `npm run test:db` | RLS / synchro SQL sur PostgreSQL local | PostgreSQL 16+ |
 | `npm run test:db:remote` | mêmes tests SQL sur Supabase | jeton `sbp_…` |
 
@@ -41,13 +46,11 @@ Les tests sur Supabase créent des comptes `@example.com` et suppriment toutes l
 Le schéma est dans `supabase/migrations/`. Pour l'appliquer à un projet Supabase :
 
 ```bash
-npx supabase link --project-ref <ref>
-npx supabase db push
+SUPABASE_PROJECT_REF=<ref> SUPABASE_ACCESS_TOKEN=sbp_... npm run db:push:remote
 ```
 
 Projet de production : `brbhfakxpozrqdfgywdv` (« Trip », région eu-west-3 Paris, PostgreSQL 17).
-Migration `20261109000000_init` appliquée le 9 novembre 2026 et enregistrée dans
-`supabase_migrations.schema_migrations` (compatible `supabase db push`).
+Migrations appliquées et enregistrées dans `supabase_migrations.schema_migrations` (compatible `supabase db push`).
 
 ### Tests SQL (RLS, Storage, synchronisation)
 

@@ -25,7 +25,16 @@ export function ServiceWorker() {
         });
       });
     };
-    navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).then(watch).catch(() => undefined);
+    // Installation après le chargement de la page : le préchargement hors ligne (quelques Mo)
+    // ne doit pas ralentir le premier affichage.
+    const register = () =>
+      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).then(watch).catch(() => undefined);
+    let delay: ReturnType<typeof setTimeout> | undefined;
+    const onLoad = () => {
+      delay = setTimeout(register, 2000);
+    };
+    if (document.readyState === "complete") onLoad();
+    else window.addEventListener("load", onLoad, { once: true });
     // Le stockage persistant limite l'effacement des billets par le navigateur en cas de manque de place.
     void navigator.storage?.persist?.().catch(() => false);
     // Recharger uniquement après « Recharger » : à la première installation, le service worker
@@ -38,6 +47,8 @@ export function ServiceWorker() {
     navigator.serviceWorker.addEventListener("controllerchange", onController);
     return () => {
       cancelled = true;
+      if (delay) clearTimeout(delay);
+      window.removeEventListener("load", onLoad);
       navigator.serviceWorker.removeEventListener("controllerchange", onController);
     };
   }, []);

@@ -77,6 +77,9 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - Aucun iPhone dans le groupe : ne pas ajouter de contournements spécifiques iOS/Safari.
 - Budget : calculs uniquement dans `lib/budget/*` (purs, testés) ; jamais de flottant pour un montant stocké ;
   toute dépense en devise étrangère fige son taux.
+- Nouveau service externe appelé par le navigateur : l'ajouter à la CSP (`connect-src`, `next.config.ts`).
+- Couleurs de texte : uniquement les jetons du thème (contraste 4,5:1 vérifié par `tests/e2e/a11y.e2e.mjs`).
+- Polices next/font : `preload: false` (polices japonaises découpées en centaines de fichiers).
 - Pas de photos dans l'app (décision des voyageurs) : le stockage gratuit est réservé aux billets et confirmations.
 - Ne jamais retirer la règle `turbopack.rules["*.css"]` de `next.config.ts` (compilation Tailwind).
 
@@ -84,7 +87,7 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements + carnet + accueil + hors ligne + budget),
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements + carnet + accueil + hors ligne + budget + accessibilité axe WCAG 2.1 AA),
   absence de débordement horizontal. App démarrée en **production** sur :3000 (`npm run build && npm start`) :
   le service worker est désactivé en dev. Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).

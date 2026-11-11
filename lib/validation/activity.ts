@@ -1,3 +1,4 @@
+import "./zod-config";
 import { z } from "zod";
 import { ACTIVITY_CATEGORIES, TRAVEL_MODES } from "@/lib/types/planning";
 import { parseAmountToMinor } from "@/lib/money";

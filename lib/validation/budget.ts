@@ -1,3 +1,4 @@
+import "./zod-config";
 import { z } from "zod";
 import { parseAmountToMinor } from "@/lib/money";
 import { computeSplit } from "@/lib/budget/split";

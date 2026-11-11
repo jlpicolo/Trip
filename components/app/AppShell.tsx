@@ -30,9 +30,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [session.status, path, router]);
 
   // Voyage actif absent ou supprimé : on bascule sur le premier voyage connu.
+  // Au rechargement, `trip` peut encore valoir null (requête précédente) alors que l'identifiant actif
+  // est déjà connu : on vérifie dans la base avant de basculer, sinon un 2ᵉ voyage serait abandonné.
   useEffect(() => {
-    if (trips === undefined || activeId === undefined || trip === undefined) return;
-    if (!trip && trips.length > 0) void getLocalDb().setMeta(ACTIVE_TRIP_KEY, trips[0].id);
+    if (trips === undefined || activeId === undefined || trip === undefined || trip || trips.length === 0) return;
+    let cancelled = false;
+    void (async () => {
+      const db = getLocalDb();
+      const row = activeId ? await db.data("trips").get(activeId) : undefined;
+      if (!cancelled && (!row || row.deleted_at)) await db.setMeta(ACTIVE_TRIP_KEY, trips[0].id);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [trips, activeId, trip]);
 
   if (session.status !== "signed_in") return <Spinner />;
@@ -50,7 +60,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SideNav />
       <div className="min-w-0 flex-1">
         <header className="safe-top sticky top-0 z-30 border-b border-line bg-canvas/90 backdrop-blur">
-          <div className="mx-auto flex min-h-14 max-w-[440px] items-center justify-between gap-2 px-4 md:max-w-[880px] md:px-8">
+          <div className="mx-auto flex min-h-14 max-w-[440px] items-center justify-between gap-2 px-4 md:max-w-[880px] md:px-8 xl:max-w-[1120px]">
             <p className="truncate font-semibold">{trip?.name ?? "Japan Trip"}</p>
             <SyncIndicator />
           </div>

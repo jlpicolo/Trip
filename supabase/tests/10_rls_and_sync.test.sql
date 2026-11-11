@@ -52,7 +52,8 @@ insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000d', 'thomas@example.com', '{"display_name":"Thomas"}'),
   ('00000000-0000-0000-0000-0000000000ee', 'mallory@example.com', '{"display_name":"Mallory"}');
 
-select tests.ok((select count(*) = 5 from public.profiles), 'profils créés par trigger');
+select tests.ok((select count(*) = 5 from public.profiles where id in (select id from auth.users where email like '%@example.com')),
+  'profils créés par trigger');
 select tests.ok((select display_name = 'chloe' from public.profiles
                  where id = '00000000-0000-0000-0000-00000000000c'), 'display_name par défaut = partie locale email');
 

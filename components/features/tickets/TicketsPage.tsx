@@ -125,8 +125,8 @@ function Tickets() {
           Ajoutez un trajet (vol, shinkansen…) puis ses billets : PDF, capture d&apos;écran ou QR code. Ils seront consultables sans connexion.
         </EmptyState>
       ) : (
-        <>
-          <section aria-labelledby="titre-trajets">
+        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6">
+          <section aria-labelledby="titre-trajets" className="min-w-0">
             <SectionTitle><span id="titre-trajets">Trajets</span></SectionTitle>
             {view.transports.length === 0 ? (
               <p className="text-sm text-dim">{mine ? "Aucun trajet ne vous concerne." : "Aucun trajet."}</p>
@@ -143,7 +143,7 @@ function Tickets() {
             )}
           </section>
 
-          <section aria-labelledby="titre-documents">
+          <section aria-labelledby="titre-documents" className="min-w-0">
             <SectionTitle><span id="titre-documents">Documents</span></SectionTitle>
             {view.loose.length === 0 ? (
               <p className="text-sm text-dim">Tous les documents sont rattachés à un trajet.</p>
@@ -161,7 +161,7 @@ function Tickets() {
               ))
             )}
           </section>
-        </>
+        </div>
       )}
 
       <Drawer open={drawer !== null} title={title} onClose={close}>

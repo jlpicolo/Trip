@@ -73,11 +73,40 @@ try {
     await a.getByRole("dialog").getByRole("heading", { name: "Cross Hotel Osaka" }).waitFor();
   });
 
+  await step("export JSON et CSV depuis les paramètres", async () => {
+    await a.goto(`${BASE}/parametres`);
+    const [json] = await Promise.all([a.waitForEvent("download"), a.getByRole("button", { name: "Tout (JSON)" }).click()]);
+    assert.match(json.suggestedFilename(), /^japan-trip-\d{4}-\d{2}-\d{2}\.json$/);
+    const data = JSON.parse(await (await import("node:fs/promises")).readFile(await json.path(), "utf8"));
+    assert.equal(data.format, "japan-trip-export");
+    assert.ok(data.activities.some((x) => x.title === "Dōtonbori"));
+    const [csv] = await Promise.all([a.waitForEvent("download"), a.getByRole("button", { name: "Pot commun (CSV)" }).click()]);
+    assert.match(csv.suggestedFilename(), /pot-commun.*\.csv$/);
+  });
+
+  await step("dupliquer le voyage : nouveau voyage affiché, planning décalé, sans billets", async () => {
+    await a.getByRole("button", { name: "Dupliquer ce voyage" }).click();
+    await a.getByLabel("Nom du nouveau voyage").fill("Japon 2028");
+    await a.getByLabel("Date de début").fill("2028-04-01");
+    await a.getByRole("button", { name: "Créer le voyage" }).click();
+    await a.getByText("Voyage « Japon 2028 » créé et affiché.").waitFor();
+    await a.goto(`${BASE}/planning`);
+    await a.locator("#jour-2028-04-01").getByText("Dōtonbori").waitFor({ timeout: 20_000 });
+    await a.goto(`${BASE}/billets`);
+    await a.getByText("Aucun billet pour l'instant").waitFor();
+    await a.goto(`${BASE}/parametres`);
+    const opt = await a.getByLabel("Voyage affiché").locator("option", { hasText: "Japan Trip" }).getAttribute("value");
+    await a.getByLabel("Voyage affiché").selectOption(opt);
+    await a.goto(`${BASE}/billets`);
+    await a.getByRole("button", { name: "Ouvrir le trajet « JAL JL46 · Paris → Osaka »" }).waitFor({ timeout: 20_000 });
+  });
+
   console.log(`\nAccueil : ${done.length} étapes réussies.`);
 } catch (e) {
   console.error("ÉCHEC", e);
   process.exitCode = 1;
 } finally {
   await browser?.close();
+  // Le voyage dupliqué appartient au même groupe : supprimé avec lui.
   await cleanup(users, trip ? [trip.tripId] : []);
 }

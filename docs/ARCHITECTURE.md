@@ -1,7 +1,7 @@
 # Japan Trip — Architecture technique
 
-> Statut : **Phase 4 (budget) terminée** — prochaine : phase 6 (finalisation). Document vivant, mis à jour à chaque phase.
-> Dernière mise à jour : 10 novembre 2026.
+> Statut : **toutes les phases terminées (1 à 6)**. Document vivant, mis à jour à chaque phase.
+> Dernière mise à jour : 11 novembre 2026.
 
 ## 0. État du dépôt au démarrage
 
@@ -265,7 +265,7 @@ côté client (≈ 2048 px, ≈ 300–500 Ko) pour tenir dans 1 Go.
 | **3f. Dashboard** ✅ | J-x, progression, prochains éléments, billets rapides, budget résumé, activité récente, favoris | aucun contenu fictif lorsque vide |
 | **4. Budget** ✅ | pot commun (4 modes de répartition), soldes, remboursements optimisés, remboursements effectués, dépenses individuelles, convertisseur | tests unitaires exhaustifs (arrondis, JPY sans décimale, cas limites) |
 | **5. Hors ligne avancé** ✅ | installation (manifest, service worker), réouverture sans réseau, cartes hors ligne par ville, persistance, « tout re-télécharger » — **aucun iPhone dans le groupe : pas de contournements iOS/Safari** | E2E en mode avion simulé (Playwright `offline`) |
-| **6. Finalisation** | export JSON/CSV, duplication de voyage, accessibilité, audit sécurité, Lighthouse PWA, documentation de déploiement | checklist complète |
+| **6. Finalisation** ✅ | export JSON/CSV, duplication de voyage, accessibilité, audit sécurité, Lighthouse PWA, documentation de déploiement | checklist complète |
 
 Ordre justifié : le moteur de synchronisation est développé dès la phase 2 car toutes les sections en
 dépendent ; le développer après coup obligerait à réécrire chaque écran.
@@ -297,11 +297,11 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
 | Jeton | Sombre (défaut) | Clair | Usage |
 |---|---|---|---|
 | `canvas` / `card` / `elev` | `#0b1020` / `#141b31` / `#1c2541` | `#f7f4ef` / `#ffffff` / `#efeae2` | fond de page, cartes, surfaces surélevées |
-| `ink` / `dim` / `mute` | `#f3f5ff` / `#a9b1cf` / `#737ca3` | `#161a2e` / `#555b78` / `#858aa3` | textes |
-| `coral` (accent principal) | `#ff6b6b` | `#d6403f` | actions, « maintenant », journée active |
-| `sakura` | `#ffb3c7` | `#b8436c` | liens, ajouts, regroupements |
-| `teal` | `#3ee0c3` | `#0b7f6c` | journées libres, dates, succès |
-| `sun` | `#ffd166` | `#9a6a00` | J-x, estimations |
+| `ink` / `dim` / `mute` | `#f3f5ff` / `#a9b1cf` / `#8a93b8` | `#161a2e` / `#555b78` / `#62677f` | textes |
+| `coral` (accent principal) | `#ff7a7a` | `#ad2c2b` | actions, « maintenant », journée active |
+| `sakura` | `#ffb3c7` | `#9e385d` | liens, ajouts, regroupements |
+| `teal` | `#3ee0c3` | `#096a5b` | journées libres, dates, succès |
+| `sun` | `#ffd166` | `#7f5700` | J-x, estimations |
 | `night` | `#8fa6ff` | `#34479a` | transports, liens secondaires |
 | `on-accent` | `#0b1020` | `#ffffff` | texte posé sur le corail (contraste ≥ 4,5 : 1 vérifié par les tests) |
 
@@ -613,7 +613,53 @@ thème sombre par défaut, illustration discrète, éléments jamais rétrécis,
 1. Formulaire ouvert avant l'arrivée du taux BCE (première visite) : le taux est désormais rempli dès son arrivée.
 2. Voyageurs connus après l'ouverture du formulaire : ils étaient décochés ; inclus par défaut dans une nouvelle dépense.
 
-## 18. Décisions prises (détails secondaires)
+## 18. Réalisé en phase 6 — Finalisation
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Export JSON complet et CSV (pot commun, mes dépenses) | `lib/export.ts`, `lib/db/export.ts`, `components/features/settings/DataSection.tsx` | tests unitaires (échappement, formules, BOM, montants) + E2E (fichiers téléchargés) |
+| Duplication d'un voyage (planning décalé, lieux et carnet repris), choix du voyage affiché | `lib/db/duplicate.ts`, `DataSection.tsx` | tests unitaires + E2E `dashboard.e2e.mjs` (6 étapes) |
+| Accessibilité WCAG 2.1 A/AA : 34 écrans et fenêtres, thèmes sombre et clair | `tests/e2e/a11y.e2e.mjs` (axe-core) | 0 violation |
+| Sécurité : CSP, absence de secret côté client, dépendances, RLS sur le projet réel | `next.config.ts`, `supabase/tests/*` | 53 assertions SQL, E2E sans violation CSP |
+| Performance : polices japonaises sans préchargement, service worker installé après le chargement | `app/layout.tsx`, `components/app/ServiceWorker.tsx`, `scripts/sw.template.js` | Lighthouse (mobile simulé) |
+| Mise en page ordinateur : 2 colonnes (accueil, billets, budget) au-delà de 1200 px | `app/globals.css`, pages concernées | captures 1440 px |
+| Documentation de déploiement et d'exploitation | `docs/DEPLOIEMENT.md`, `README.md` | — |
+
+### Mesures Lighthouse (page de connexion, mobile 4G simulé, build de production)
+
+| | Avant | Après |
+|---|---|---|
+| Performance | 44 | 83 |
+| Accessibilité / Bonnes pratiques / SEO | 100 / 96 / 100 | 100 / 100 / 100 |
+| Poids total | 8,9 Mo | 556 Ko |
+| Affichage du contenu principal (LCP) | 58,5 s | 4,1 s |
+
+Les pages de l'app sont les mêmes coquilles statiques pour tous (données lues sur l'appareil) : la mesure de la page
+de connexion vaut pour le chargement de l'app. Lighthouse ne conserve pas la session ; les pages connectées n'ont
+pas été mesurées séparément.
+
+### Décisions de la phase 6
+
+- **Contrastes** : jetons ajustés pour 4,5:1 minimum sur tous les fonds, y compris teintés (`coral-soft`…), dans les
+  deux thèmes ; couleurs fixes hors jetons retirées (tampons de villes).
+- **Polices** : `preload: false` sur les deux polices Google. Pour les polices japonaises, Next préchargeait les
+  ~300 tranches Unicode de chaque graisse (607 fichiers, ~20 Mo). Le service worker ne met en cache que les tranches
+  latines, repérées dans les `@font-face` (`unicode-range`) ; hors ligne, les kanji utilisent les polices du téléphone.
+- **Service worker** enregistré 2 s après le chargement de la page : le précache ne concurrence plus le premier affichage.
+- **CSP** : `unsafe-inline` conservé pour les scripts (pages statiques sans nonce) ; `wasm-unsafe-eval` pour le
+  lecteur de codes ; zod configuré sans `eval` (`lib/validation/zod-config.ts`) pour ne déclencher aucune violation.
+- **Export** : sauvegarde de dernier recours lisible ; les dépenses personnelles des autres et les fichiers ne sont
+  pas exportés. CSV au format Excel français (`;`, virgule décimale, BOM UTF-8), formules neutralisées.
+- **Duplication** : billets, hébergements et dépenses non repris (propres à chaque voyage) ; taux manuel réinitialisé.
+
+### Bugs trouvés par les tests et corrigés
+
+1. **Plusieurs voyages : retour forcé au premier voyage après un rechargement** (`AppShell`) : pendant un instant, le
+   voyage actif était connu mais pas encore sa fiche, et l'app basculait sur le premier voyage. La bascule ne se fait
+   plus qu'après vérification dans la base locale.
+2. 313 fichiers de polices préchargés sur chaque page (voir « Polices ») ; test SQL qui supposait une base vide.
+
+## 19. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

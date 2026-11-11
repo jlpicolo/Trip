@@ -159,6 +159,13 @@
   }
 }
 
+/* Ordinateur : deux colonnes sur l'accueil, les billets et le budget (classe .two-cols). */
+@media (min-width: 1200px) {
+  .app-main {
+    max-width: 1120px;
+  }
+}
+
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }

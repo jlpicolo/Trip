@@ -6,10 +6,11 @@ import { SessionProvider } from "@/hooks/useSession";
 import { themeBootScript } from "@/lib/theme";
 import "./globals.css";
 
-// Polices embarquées par next/font (servies par l'app, donc disponibles hors ligne).
-// Seuls les glyphes latins sont proposés : les kanji utilisent les polices japonaises du système.
-const title = Shippori_Mincho_B1({ variable: "--font-title", subsets: ["latin"], weight: ["600", "800"], display: "swap" });
-const body = Zen_Kaku_Gothic_New({ variable: "--font-body", subsets: ["latin"], weight: ["400", "500", "700"], display: "swap" });
+// Polices embarquées par next/font (servies par l'app). `preload: false` : pour ces polices japonaises,
+// Next préchargeait les ~300 tranches Unicode de chaque graisse (plusieurs Mo par page) ; sans préchargement,
+// le navigateur ne télécharge que les tranches utilisées (latin), et le service worker ne garde que celles-là.
+const title = Shippori_Mincho_B1({ variable: "--font-title", subsets: ["latin"], weight: ["600", "800"], display: "swap", preload: false });
+const body = Zen_Kaku_Gothic_New({ variable: "--font-body", subsets: ["latin"], weight: ["400", "500", "700"], display: "swap", preload: false });
 
 export const metadata: Metadata = {
   title: { default: "Japan Trip", template: "%s · Japan Trip" },

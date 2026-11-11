@@ -1,3 +1,4 @@
+import "./zod-config";
 import { z } from "zod";
 import { PLACE_CATEGORIES } from "@/lib/places";
 import { parseCoordinates } from "@/lib/geo";

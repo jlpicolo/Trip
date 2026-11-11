@@ -4,7 +4,7 @@
  * Vérifie la réouverture sans réseau (rechargement, navigation), les billets et une carte téléchargée.
  */
 import assert from "node:assert/strict";
-import { BASE, SHOTS, admin, cleanup, createTraveler, createTrip, launch, login, stepper } from "./helpers.mjs";
+import { BASE, SHOTS, admin, cleanup, createTraveler, createTrip, eventually, launch, login, stepper } from "./helpers.mjs";
 
 const users = [];
 let trip;
@@ -37,12 +37,18 @@ try {
     const manifest = await (await a.request.get(`${BASE}/manifest.webmanifest`)).json();
     assert.equal(manifest.display, "standalone");
     assert.ok(manifest.icons.some((i) => i.purpose === "maskable"));
-    await a.waitForFunction(async () => !!navigator.serviceWorker.controller && (await caches.keys()).some((k) => k.startsWith("jt-shell-")), null, { timeout: 60_000 });
+    // Prêt = service worker actif ET précache terminé (le cache existe dès le début de l'installation).
+    // (waitForFunction n'attend pas une fonction asynchrone : la promesse compte comme « vraie ».)
+    await eventually(async () => assert.ok(await a.evaluate(async () => {
+      if (!navigator.serviceWorker.controller) return false;
+      const key = (await caches.keys()).find((k) => k.startsWith("jt-shell-"));
+      return !!key && !!(await (await caches.open(key)).match("/accueil"));
+    }), "précache terminé"), { timeout: 90_000, interval: 1000 });
     const pages = await a.evaluate(async () => {
       const key = (await caches.keys()).find((k) => k.startsWith("jt-shell-"));
       return (await (await caches.open(key)).keys()).map((r) => new URL(r.url).pathname);
     });
-    for (const p of ["/accueil", "/planning", "/billets", "/carte", "/connexion"]) assert.ok(pages.includes(p), `page en cache : ${p}`);
+    for (const p of ["/accueil", "/planning", "/billets", "/carte", "/connexion"]) assert.ok(pages.includes(p), `page en cache : ${p} (cache : ${pages.join(", ")})`);
     await a.getByRole("link", { name: /Prochain trajet/ }).getByText(/Kintetsu/).waitFor({ timeout: 30_000 });
   });
 

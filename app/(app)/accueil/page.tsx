@@ -139,6 +139,8 @@ export default function DashboardPage() {
         </section>
       )}
 
+      <div className="flex flex-col gap-5 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6">
+      <div className="flex min-w-0 flex-col gap-5">
       <section aria-labelledby="prochaine-etape" className="flex flex-col gap-2">
         <h2 id="prochaine-etape" className="font-sans text-sm font-bold text-dim">Prochaine étape</h2>
         <NextActivity row={data?.activity} />
@@ -189,6 +191,8 @@ export default function DashboardPage() {
         </Link>
       )}
 
+      </div>
+      <div className="flex min-w-0 flex-col gap-5">
       {data && data.favorites.length > 0 && (
         <section aria-labelledby="favoris" className="flex flex-col gap-2">
           <h2 id="favoris" className="font-sans text-sm font-bold text-dim">Lieux favoris</h2>
@@ -241,6 +245,8 @@ export default function DashboardPage() {
           </ul>
         )}
       </section>
+      </div>
+      </div>
       {code?.code_value && code.code_format && (
         <FullscreenCode title={code.title} format={code.code_format} value={code.code_value}
           subtitle={data?.transport ? transportTitle(data.transport) : null} onClose={closeCode} />

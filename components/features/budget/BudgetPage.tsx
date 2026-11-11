@@ -99,7 +99,8 @@ export function BudgetPage() {
             en euros ou en yens. L&apos;app calcule qui doit quoi au centime près.
           </EmptyState>
         ) : (
-          <>
+          <div className="flex flex-col gap-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-6">
+            <div className="flex min-w-0 flex-col gap-4">
             <Card className="flex flex-col gap-3" aria-label="Soldes">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-sm text-dim">Total du pot commun</span>
@@ -140,6 +141,8 @@ export function BudgetPage() {
               <p className="mt-1 text-xs text-mute">Nombre de virements réduit au minimum.</p>
             </section>
 
+            </div>
+            <div className="flex min-w-0 flex-col gap-4">
             <section aria-labelledby="titre-depenses">
               <SectionTitle><span id="titre-depenses">Dépenses</span></SectionTitle>
               <ul className="flex flex-col gap-2">
@@ -162,7 +165,8 @@ export function BudgetPage() {
                 </ul>
               </section>
             )}
-          </>
+          </div>
+          </div>
         )
       )}
 

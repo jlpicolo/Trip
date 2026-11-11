@@ -1,3 +1,4 @@
+import "./zod-config";
 import { z } from "zod";
 import { CODE_FORMATS, DOCUMENT_CATEGORIES, DOCUMENT_KINDS, type CodeFormat } from "@/lib/types/tickets";
 

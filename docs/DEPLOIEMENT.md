@@ -30,8 +30,49 @@ affiche « Variable d'environnement manquante », les variables n'étaient pas p
 
 ## Services externes utilisés par le navigateur
 
-- Tuiles de carte : `tiles.openfreemap.org` (aucune clé).
-- Recherche de lieux : `nominatim.openstreetmap.org` (aucune clé, 1 requête/seconde).
+Aucune clé n'est nécessaire. Ce sont les seuls domaines autorisés par la politique de sécurité du contenu
+(`Content-Security-Policy`, dans `next.config.ts`) : **ajouter un service externe = l'ajouter aussi à `connect-src`**.
+
+- Supabase : l'URL de `NEXT_PUBLIC_SUPABASE_URL` (base, authentification, fichiers).
+- Tuiles de carte : `tiles.openfreemap.org` (en ligne et cartes hors ligne téléchargées ville par ville).
+- Recherche de lieux : `nominatim.openstreetmap.org` (1 requête/seconde).
+- Taux de change : `api.frankfurter.dev` (taux de référence BCE, une fois par jour au plus).
+
+## Mises à jour de l'application
+
+Chaque push sur `main` déclenche un déploiement Vercel. Le build génère `public/sw.js` (service worker)
+avec le numéro du commit : les téléphones détectent la nouvelle version et affichent « Nouvelle version
+disponible — Recharger ». Vérifier la version en ligne :
+
+```bash
+curl -s https://trip-teal-three.vercel.app/sw.js | grep VERSION
+```
+
+Migrations de base : `npm run db:push:remote` (voir plus bas) **avant** de pousser un code qui en dépend.
+
+## Avant le voyage (février–mars 2027)
+
+1. **Supabase en Pro** pour février–mars : pas de mise en pause après 7 jours sans activité, sauvegardes
+   quotidiennes. En gratuit, ouvrir l'app au moins une fois par semaine pendant la préparation.
+2. Sur chaque téléphone (Android, Chrome) : installer l'app (⋮ › « Installer l'application »), puis
+   *Paramètres › Hors ligne* : vérifier « Prête hors ligne », « Tout télécharger » et télécharger la carte de
+   chaque ville, en Wi-Fi.
+3. *Paramètres › Données et voyages* : exporter le voyage (JSON) et le pot commun (CSV) comme sauvegarde.
+4. Test en mode avion : rouvrir l'app, afficher un billet, la carte d'une ville.
+
+## Sécurité (audit de novembre 2026)
+
+| Point | État |
+|---|---|
+| Droits d'accès (RLS, stockage privé, dépenses personnelles) | 53 assertions SQL vertes sur le projet réel (`npm run test:db:remote`) |
+| Clé secrète | absente des fichiers servis au navigateur (vérifié dans le build) ; jamais dans Vercel |
+| Dépendances livrées | `npm audit --omit=dev` : 0 vulnérabilité (alerte modérée sur un outil de lint uniquement) |
+| En-têtes | CSP limitée aux services ci-dessus, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` |
+| Données sur l'appareil | effacées à la déconnexion ; pièces d'identité jamais téléchargées automatiquement |
+| Exports CSV | formules neutralisées (pas d'exécution à l'ouverture dans un tableur) |
+
+⚠️ Clés à **régénérer** (elles ont circulé dans une conversation) : clé secrète `sb_secret_…`
+(*Project Settings › API Keys*) puis mettre à jour `.env.local` ; jeton `sbp_…` (*Account › Access Tokens*).
 
 ## Gestion des comptes (propriétaire du service)
 

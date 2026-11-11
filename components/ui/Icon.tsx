@@ -50,6 +50,7 @@ export const ICON_PATHS = {
   route: "M6 19a2 2 0 1 0 0-.01M18 5a2 2 0 1 0 0-.01M6 17V9a4 4 0 0 1 8 0v6a4 4 0 0 0 8 0",
   qr: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h2v2h-2zM18 18h2v2h-2zM14 18h2M18 14h2",
   download: "M12 3v12M7 10l5 5 5-5M4 19h16",
+  upload: "M12 16V4M7 9l5-5 5 5M4 20h16",
   expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   camera: "M4 7h3l2-3h6l2 3h3v13H4zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",

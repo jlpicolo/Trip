@@ -15,6 +15,8 @@ import { TripMap, type MapStatus } from "@/components/features/map/TripMap";
 import { PlaceForm, initialPlaceForm } from "@/components/features/map/PlaceForm";
 import { PlaceDetails } from "@/components/features/map/PlaceDetails";
 import { SearchPanel } from "@/components/features/map/SearchPanel";
+import { ImportPlaces } from "@/components/features/map/ImportPlaces";
+import { importPlaces } from "@/lib/db/import";
 import { getEngine } from "@/lib/sync/client";
 import { getLocalDb } from "@/lib/db/schema";
 import { activitiesOfTrip, placesOfTrip } from "@/lib/db/planning";
@@ -27,7 +29,7 @@ import type { GeocodeResult } from "@/lib/geocoding";
 import type { PlaceForm as PlaceFormValues } from "@/lib/validation/place";
 import type { Place } from "@/lib/types/planning";
 
-type DrawerState = null | { kind: "details"; id: string } | { kind: "form"; id?: string; draft?: Partial<PlaceFormValues> };
+type DrawerState = null | { kind: "details"; id: string } | { kind: "form"; id?: string; draft?: Partial<PlaceFormValues> } | { kind: "import" };
 
 function MapPage() {
   const { trip } = useCurrentTrip();
@@ -194,7 +196,9 @@ function MapPage() {
         </div>
       </div>
 
-      <SectionTitle>Lieux ({filtered.length}{filtered.length !== data.places.length ? ` sur ${data.places.length}` : ""})</SectionTitle>
+      <SectionTitle action={<Button variant="ghost" icon="upload" onClick={() => setDrawer({ kind: "import" })}>Importer un fichier</Button>}>
+        Lieux ({filtered.length}{filtered.length !== data.places.length ? ` sur ${data.places.length}` : ""})
+      </SectionTitle>
       {data.places.length === 0 ? (
         <EmptyState icon="map" title="Aucun lieu pour l'instant" action={<Button icon="plus" onClick={() => setDrawer({ kind: "form" })}>Ajouter un lieu</Button>}>
           Recherchez un lieu, touchez la carte, ou ajoutez une adresse dans une activité du planning.
@@ -208,7 +212,16 @@ function MapPage() {
       )}
 
       <Drawer open={drawer !== null} onClose={close}
-        title={drawer?.kind === "details" ? (current?.name ?? "Lieu") : drawer?.kind === "form" && drawer.id ? "Modifier le lieu" : "Nouveau lieu"}>
+        title={drawer?.kind === "import" ? "Importer des lieux" : drawer?.kind === "details" ? (current?.name ?? "Lieu") : drawer?.kind === "form" && drawer.id ? "Modifier le lieu" : "Nouveau lieu"}>
+        {drawer?.kind === "import" && (
+          <ImportPlaces destinations={cities} existing={data.places}
+            onImport={async (rows, withJournal, onProgress) => {
+              const n = await importPlaces(engine, trip.id, rows, withJournal, onProgress);
+              saved(`${n} lieu${n > 1 ? "x" : ""} importé${n > 1 ? "s" : ""}${withJournal ? " (et ajoutés au carnet)" : ""}.`);
+              close();
+              return n;
+            }} />
+        )}
         {drawer?.kind === "details" && !current && <p className="text-sm text-dim">Ce lieu n&apos;existe plus.</p>}
         {drawer?.kind === "details" && current && (
           <PlaceDetails key={current.id} place={current} tripId={trip.id} dates={dates}

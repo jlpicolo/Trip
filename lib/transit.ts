@@ -140,7 +140,7 @@ const cacheKey = (p: Point) => `transit:${p.lat.toFixed(3)},${p.lng.toFixed(3)}`
  * Gares autour des points : cache local d'abord (hors ligne), puis une seule requête Overpass pour les
  * points manquants. L'instance publique est souvent saturée : trois essais espacés, puis erreur claire.
  */
-export async function transitAround(db: LocalDb, points: Point[], fetcher: typeof fetch = fetch, pauseMs = 1500): Promise<{ stations: TransitStation[]; missing: number }> {
+export async function transitAround(db: LocalDb, points: Point[], fetcher: typeof fetch = fetch, pauseMs = 1500, timeoutMs = 30_000): Promise<{ stations: TransitStation[]; missing: number }> {
   const cached: TransitStation[] = [];
   const todo: Point[] = [];
   for (const p of points) {
@@ -158,6 +158,8 @@ export async function transitAround(db: LocalDb, points: Point[], fetcher: typeo
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
         body: `data=${encodeURIComponent(buildQuery(todo))}`,
+        // Sans limite, une connexion bloquée laisserait « Recherche des gares… » affiché indéfiniment.
+        signal: AbortSignal.timeout(timeoutMs),
       });
       if (res.ok) json = await res.json();
     } catch {

@@ -83,6 +83,14 @@ describe("gares et lignes (Overpass)", () => {
     expect(again.stations).toHaveLength(2);
   });
 
+  it("connexion bloquée : abandon après le délai, puis erreur claire", async () => {
+    const db = new LocalDb("transit-3");
+    dbs.push(db);
+    const hang = vi.fn((_u: string, init: RequestInit) => new Promise<Response>((_r, reject) => init.signal!.addEventListener("abort", () => reject(new Error("abort")))));
+    await expect(transitAround(db, [{ lat: 35, lng: 139 }], hang as never, 0, 20)).rejects.toThrow(/indisponible/);
+    expect(hang).toHaveBeenCalledTimes(3);
+  });
+
   it("service saturé : trois essais, puis erreur claire", async () => {
     const db = new LocalDb("transit-2");
     dbs.push(db);

@@ -70,7 +70,7 @@ try {
       const retry = a.getByRole("button", { name: "Réessayer" });
       if (await retry.isVisible()) await retry.click();
       assert.ok(await box.isVisible());
-    }, { timeout: 90_000, interval: 5_000 });
+    }, { timeout: 240_000, interval: 5_000 });
     const text = await box.innerText();
     assert.match(text, /Gares près du départ :\s*\S+/);
     assert.match(text, /Gares près de l'arrivée :\s*\S+/);

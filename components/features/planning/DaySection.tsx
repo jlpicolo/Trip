@@ -98,8 +98,14 @@ export function DaySection({ date, dayNumber, isToday, day, items, transports = 
             {day?.title && <span className="text-dim"> · {day.title}</span>}
           </p>
         </div>
-        <button onClick={onEditDay} aria-label={`Note et ville du ${title}`}
-          className="grid size-10 shrink-0 place-items-center rounded-full text-dim hover:bg-elev"><Icon name="edit" size={18} /></button>
+        <div className="flex shrink-0">
+          {!empty && (
+            <Link href={`/carte?parcours=${date}`} aria-label={`Voir le parcours du ${title.toLowerCase()} sur la carte`}
+              className="grid size-10 place-items-center rounded-full text-dim hover:bg-elev"><Icon name="route" size={18} /></Link>
+          )}
+          <button onClick={onEditDay} aria-label={`Note et ville du ${title}`}
+            className="grid size-10 place-items-center rounded-full text-dim hover:bg-elev"><Icon name="edit" size={18} /></button>
+        </div>
       </div>
       {(day?.is_free || day?.notes) && (
         <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl border border-dashed border-teal/40 bg-teal-soft px-3 py-2 text-sm">

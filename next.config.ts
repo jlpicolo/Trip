@@ -18,7 +18,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://tiles.openfreemap.org",
   "font-src 'self' data:",
-  `connect-src 'self' ${supabase} ${supabase.replace(/^https:/, "wss:")} https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://api.frankfurter.dev${dev ? " ws:" : ""}`,
+  `connect-src 'self' ${supabase} ${supabase.replace(/^https:/, "wss:")} https://tiles.openfreemap.org https://nominatim.openstreetmap.org https://api.frankfurter.dev https://overpass-api.de${dev ? " ws:" : ""}`,
   "worker-src 'self' blob:",
   "object-src 'self' blob:",
   "frame-src 'self' blob:",

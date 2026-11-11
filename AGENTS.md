@@ -47,7 +47,9 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 - Types partagés dans `lib/types/<domaine>.ts` ; schémas zod dans `lib/validation/`.
 - Les composants ne lisent jamais le réseau : lecture/écriture via `lib/db/<domaine>.ts` (IndexedDB),
   le réseau passe exclusivement par `lib/sync/` — seule exception : les services externes en ligne
-  uniquement (recherche de lieux `lib/geocoding.ts`, taux de change), qui signalent clairement le hors ligne.
+  uniquement (recherche de lieux `lib/geocoding.ts`, taux de change, gares `lib/transit.ts`), qui signalent clairement
+  le hors ligne.
+- Parcours : lignes droites toujours libellées « à vol d'oiseau » ; aucun temps de trajet calculé (Google Maps pour cela).
 - Identifiants : `crypto.randomUUID()` (UUID requis par Postgres) ; journées : UUID v5 déterministe.
 - Argent : entiers en unités mineures ; formatage via `lib/formatters.ts` (`Intl.NumberFormat`).
 - Composants UI dans `components/ui/*`, sobres ; icônes en SVG inline (pas de bibliothèque d'icônes),
@@ -87,7 +89,7 @@ Stack : Next.js **16.4** (App Router, Turbopack) · React **19.3** · TypeScript
 
 - `npm test` : tests unitaires (Vitest + fake-indexeddb), dont le moteur de synchro face à un faux serveur.
 - `npm run test:integration` : moteur de synchro contre le VRAI Supabase (crée puis supprime 5 comptes).
-- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements + carnet + accueil + hors ligne + budget + accessibilité axe WCAG 2.1 AA),
+- `npm run test:e2e` : Chromium, 2 voyageurs (collaboration + planning + carte + billets + hébergements + carnet + accueil + hors ligne + budget + import + parcours + accessibilité axe WCAG 2.1 AA),
   absence de débordement horizontal. App démarrée en **production** sur :3000 (`npm run build && npm start`) :
   le service worker est désactivé en dev. Aides communes : `tests/e2e/helpers.mjs`.
 - `npm run db:push:remote` : applique les migrations manquantes sur Supabase (API de gestion).

@@ -7,12 +7,11 @@ import { ICON_PATHS } from "@/components/ui/Icon";
 import { placeMeta } from "@/lib/places";
 import { clusterPoints } from "@/lib/map-cluster";
 import type { Place } from "@/lib/types/planning";
+import { MAP_STYLES as STYLE } from "@/lib/map-tiles";
+import type { DayRoute } from "@/lib/route-plan";
 
 export type MapStatus = "loading" | "ready" | "tiles-unavailable" | "unsupported";
 
-
-
-import { MAP_STYLES as STYLE } from "@/lib/map-tiles";
 const JAPAN = { center: [137.2, 36.0] as [number, number], zoom: 4.6 };
 
 function markerElement(place: Place): HTMLButtonElement {
@@ -37,6 +36,27 @@ export interface TripMapProps {
   onMoved: (lat: number, lng: number) => void;
   preview: { lat: number; lng: number } | null;
   onStatus: (s: MapStatus) => void;
+  /** Mode Parcours : tracés des journées (ordre du planning). */
+  routes?: DayRoute[];
+}
+
+const ROUTE_SOURCE = "jt-routes";
+
+/** Tracés en GeoJSON : tronçons de la journée (pleins) et trajets entre villes (pointillés). */
+function routesGeoJson(routes: DayRoute[]) {
+  const features = routes.flatMap((r) => [
+    ...r.legs.map((l) => ({
+      type: "Feature" as const,
+      properties: { color: r.color, hop: 0 },
+      geometry: { type: "LineString" as const, coordinates: [[l.from.lng, l.from.lat], [l.to.lng, l.to.lat]] },
+    })),
+    ...r.hops.filter((h) => h.from && h.to).map((h) => ({
+      type: "Feature" as const,
+      properties: { color: r.color, hop: 1 },
+      geometry: { type: "LineString" as const, coordinates: [[h.from!.lng, h.from!.lat], [h.to!.lng, h.to!.lat]] },
+    })),
+  ]);
+  return { type: "FeatureCollection" as const, features };
 }
 
 /**
@@ -53,6 +73,7 @@ export function TripMap(props: TripMapProps) {
   const lib = useRef<typeof import("maplibre-gl") | null>(null);
   const latest = useRef(props);
   const fitted = useRef(false);
+  const routeMarkers = useRef<Marker[]>([]);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -214,6 +235,67 @@ export function TripMap(props: TripMapProps) {
   useEffect(() => {
     if (map.current) map.current.getCanvas().style.cursor = props.picking ? "crosshair" : "";
   }, [props.picking]);
+
+  // Mode Parcours : tracés colorés par jour, étapes numérotées, voies de métro mises en valeur.
+  useEffect(() => {
+    const m = map.current;
+    const maplibre = lib.current;
+    if (!m || !maplibre || !ready) return;
+    const routes = props.routes ?? [];
+    // Mode Lieux sans tracé déjà posé : rien à faire (et ne pas toucher au style pendant son chargement).
+    if (routes.length === 0 && !m.getSource(ROUTE_SOURCE) && routeMarkers.current.length === 0) return;
+    let cancelled = false;
+    const apply = () => {
+      if (cancelled) return;
+      // Style encore en chargement (carte recréée en revenant sur la page) : on réessaie quand il est prêt.
+      if (!m.isStyleLoaded()) {
+        m.once("idle", apply);
+        return;
+      }
+      const data = routesGeoJson(routes);
+      const src = m.getSource(ROUTE_SOURCE) as import("maplibre-gl").GeoJSONSource | undefined;
+      if (src) src.setData(data);
+      else {
+        m.addSource(ROUTE_SOURCE, { type: "geojson", data });
+        if (m.getSource("openmaptiles")) {
+          m.addLayer({
+            id: "jt-subway", type: "line", source: "openmaptiles", "source-layer": "transportation",
+            filter: ["all", ["match", ["get", "class"], ["rail", "transit"], true, false], ["==", ["get", "subclass"], "subway"]],
+            paint: { "line-color": "#8fa6ff", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.2, 15, 3.5], "line-opacity": 0.75 },
+            layout: { visibility: "none" },
+          });
+        }
+        m.addLayer({ id: "jt-routes-hops", type: "line", source: ROUTE_SOURCE, filter: ["==", ["get", "hop"], 1],
+          paint: { "line-color": ["get", "color"], "line-width": 3, "line-dasharray": [2, 2], "line-opacity": 0.9 } });
+        m.addLayer({ id: "jt-routes-legs", type: "line", source: ROUTE_SOURCE, filter: ["==", ["get", "hop"], 0],
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": ["get", "color"], "line-width": 4.5, "line-opacity": 0.9 } });
+      }
+      if (m.getLayer("jt-subway")) m.setLayoutProperty("jt-subway", "visibility", routes.length ? "visible" : "none");
+
+      for (const mk of routeMarkers.current) mk.remove();
+      routeMarkers.current = [];
+      const bounds = new maplibre.LngLatBounds();
+      for (const r of routes) {
+        r.stops.forEach((s, i) => {
+          bounds.extend([s.lng, s.lat]);
+          const el = document.createElement("span");
+          el.className = "jt-stop";
+          el.setAttribute("aria-hidden", "true");
+          el.style.background = r.color;
+          el.textContent = s.kind === "hotel" ? "H" : String(r.stops.slice(0, i + 1).filter((x) => x.kind === "activity").length);
+          routeMarkers.current.push(new maplibre.Marker({ element: el, offset: [-16, -16] }).setLngLat([s.lng, s.lat]).addTo(m));
+        });
+        for (const h of r.hops) for (const pt of [h.from, h.to]) if (pt) bounds.extend([pt.lng, pt.lat]);
+      }
+      if (!bounds.isEmpty()) m.fitBounds(bounds, { padding: { top: 150, bottom: 110, left: 50, right: 60 }, maxZoom: 15, duration: 600 });
+    };
+    apply();
+    return () => {
+      cancelled = true;
+      m.off("idle", apply);
+    };
+  }, [props.routes, ready]);
 
   return <div ref={container} className="size-full" role="region" aria-label="Carte des lieux du voyage" />;
 }

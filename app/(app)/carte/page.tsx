@@ -16,6 +16,11 @@ import { PlaceForm, initialPlaceForm } from "@/components/features/map/PlaceForm
 import { PlaceDetails } from "@/components/features/map/PlaceDetails";
 import { SearchPanel } from "@/components/features/map/SearchPanel";
 import { ImportPlaces } from "@/components/features/map/ImportPlaces";
+import { RoutePanel } from "@/components/features/map/RoutePanel";
+import { staysOfTrip } from "@/lib/db/stays";
+import { transportsOfTrip } from "@/lib/db/tickets";
+import { buildDayRoutes } from "@/lib/route-plan";
+import { useTransit } from "@/components/features/map/useTransit";
 import { importPlaces } from "@/lib/db/import";
 import { getEngine } from "@/lib/sync/client";
 import { getLocalDb } from "@/lib/db/schema";
@@ -41,11 +46,25 @@ function MapPage() {
   const dates = useMemo(() => tripDates(trip.start_date, trip.end_date), [trip.start_date, trip.end_date]);
 
   const data = useLiveQuery(async () => {
-    const [places, activities] = await Promise.all([placesOfTrip(db, trip.id), activitiesOfTrip(db, trip.id)]);
-    return { places: [...places.values()].sort((a, b) => a.name.localeCompare(b.name, "fr")), activities };
+    const [places, activities, stays, transports] = await Promise.all([
+      placesOfTrip(db, trip.id), activitiesOfTrip(db, trip.id), staysOfTrip(db, trip.id), transportsOfTrip(db, trip.id),
+    ]);
+    return { placeMap: places, places: [...places.values()].sort((a, b) => a.name.localeCompare(b.name, "fr")), activities, stays, transports };
   }, [trip.id]);
 
   const lieu = params.get("lieu");
+  // ?parcours=AAAA-MM-JJ (depuis le planning) ou ?parcours=tous : ouvre le mode Parcours.
+  const parcours = params.get("parcours");
+  const [mode, setMode] = useState<"lieux" | "parcours">(parcours ? "parcours" : "lieux");
+  const [routeDay, setRouteDay] = useState(parcours && parcours !== "tous" ? parcours : "");
+  const [lastParcours, setLastParcours] = useState(parcours);
+  if (parcours !== lastParcours) {
+    setLastParcours(parcours);
+    if (parcours) {
+      setMode("parcours");
+      setRouteDay(parcours === "tous" ? "" : parcours);
+    }
+  }
   const [selectedId, setSelectedId] = useState<string | null>(lieu);
   const [drawer, setDrawer] = useState<DrawerState>(lieu ? { kind: "details", id: lieu } : null);
   // La page reste montée entre deux visites (cacheComponents) : un nouveau ?lieu= venu du
@@ -67,12 +86,22 @@ function MapPage() {
   const [mapStatus, setMapStatus] = useState<MapStatus>("loading");
   const close = useCallback(() => setDrawer(null), []);
 
+  const allRoutes = useMemo(() => (data ? buildDayRoutes({ dates, activities: data.activities, places: data.placeMap, stays: data.stays, transports: data.transports }) : []),
+    [data, dates]);
+  const routes = useMemo(() => (mode !== "parcours" ? [] : routeDay ? allRoutes.filter((r) => r.date === routeDay) : allRoutes),
+    [allRoutes, mode, routeDay]);
+  const transit = useTransit(routes);
+
   const filtered = useMemo(() => {
     if (!data) return [];
+    if (mode === "parcours") {
+      const ids = new Set(routes.flatMap((r) => r.stops.map((s) => s.placeId).filter((x): x is string => !!x)));
+      return data.places.filter((p) => ids.has(p.id));
+    }
     const dayPlaces = day ? new Set(data.activities.filter((a) => a.date === day && a.place_id).map((a) => a.place_id!)) : null;
     return data.places.filter((p) =>
       (categories.size === 0 || categories.has(p.category)) && (!favoritesOnly || p.is_favorite) && (!dayPlaces || dayPlaces.has(p.id)));
-  }, [data, categories, favoritesOnly, day]);
+  }, [data, categories, favoritesOnly, day, mode, routes]);
 
   if (!data) return <Spinner />;
   const byId = new Map(data.places.map((p) => [p.id, p]));
@@ -126,7 +155,8 @@ function MapPage() {
           <TripMap places={filtered} selectedId={selectedId} onSelect={select}
             picking={picking !== null} onPick={onPick}
             movingId={moving?.id ?? null} onMoved={(lat, lng) => setMoving((m) => (m ? { ...m, lat, lng } : m))}
-            preview={preview ? { lat: preview.lat, lng: preview.lng } : null} onStatus={setMapStatus} />
+            preview={preview ? { lat: preview.lat, lng: preview.lng } : null} onStatus={setMapStatus}
+            routes={routes} />
         )}
 
         <div className="pointer-events-none absolute inset-x-0 top-0 flex flex-col gap-2 p-3">
@@ -136,6 +166,22 @@ function MapPage() {
               setDrawer({ kind: "form", draft: { name: r.name, category: r.category, address: r.address, city: r.city ?? "", coords: formatCoordinates(r.lat, r.lng) } });
             }} />
           </div>
+          <div className="pointer-events-auto flex gap-1.5">
+            <div role="tablist" aria-label="Mode de la carte" className="flex shrink-0 rounded-full bg-card/95 p-0.5 shadow">
+              {([["lieux", "Lieux"], ["parcours", "Parcours"]] as const).map(([v, l]) => (
+                <button key={v} role="tab" aria-selected={mode === v} onClick={() => setMode(v)}
+                  className={`min-h-9 rounded-full px-3 text-xs font-semibold ${mode === v ? "bg-coral text-on-accent" : "text-ink"}`}>{l}</button>
+              ))}
+            </div>
+            {mode === "parcours" && (
+              <select value={routeDay} onChange={(e) => setRouteDay(e.target.value)} aria-label="Journée du parcours"
+                className="min-h-9 min-w-0 flex-1 rounded-full border border-line-strong bg-card/95 px-3 text-xs font-semibold text-ink shadow">
+                <option value="">Tous les jours</option>
+                {allRoutes.map((r) => <option key={r.date} value={r.date}>Jour {r.index + 1} · {formatDayShort(r.date)}{r.stops.length > 1 ? "" : " (vide)"}</option>)}
+              </select>
+            )}
+          </div>
+          {mode === "lieux" && (
           <div className="pointer-events-auto -mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none]" role="group" aria-label="Filtrer les lieux">
             <select value={day} onChange={(e) => setDay(e.target.value)} aria-label="Afficher les lieux d'une journée"
               className={`min-h-9 shrink-0 rounded-full border px-3 text-xs font-semibold shadow ${day ? "border-transparent bg-teal text-on-accent" : "border-line-strong bg-card/95 text-ink"}`}>
@@ -157,6 +203,7 @@ function MapPage() {
               );
             })}
           </div>
+          )}
         </div>
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col gap-2 p-3 pb-9">
@@ -196,6 +243,13 @@ function MapPage() {
         </div>
       </div>
 
+      {mode === "parcours" ? (
+        <>
+          <SectionTitle>Parcours {routeDay ? "du jour" : "de tous les jours"}</SectionTitle>
+          <RoutePanel routes={routes} transit={transit} totalDays={dates.length} />
+        </>
+      ) : (
+      <>
       <SectionTitle action={<Button variant="ghost" icon="upload" onClick={() => setDrawer({ kind: "import" })}>Importer un fichier</Button>}>
         Lieux ({filtered.length}{filtered.length !== data.places.length ? ` sur ${data.places.length}` : ""})
       </SectionTitle>
@@ -209,6 +263,8 @@ function MapPage() {
         <ul className="flex flex-col gap-2" aria-label="Liste des lieux">
           {filtered.map((p) => <PlaceRow key={p.id} place={p} selected={p.id === selectedId} onOpen={() => select(p.id)} />)}
         </ul>
+      )}
+      </>
       )}
 
       <Drawer open={drawer !== null} onClose={close}

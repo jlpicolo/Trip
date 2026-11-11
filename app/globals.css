@@ -276,6 +276,20 @@
   color: var(--sakura);
   text-shadow: 0 0 2px #000;
 }
+/* Numéro d'étape du mode Parcours (couleur du jour posée en style). */
+.jt-stop {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  color: #0b1020;
+  border: 2px solid #fff;
+  font: 800 12px/1 var(--font-sans);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
 .jt-marker-preview {
   width: 20px;
   height: 20px;

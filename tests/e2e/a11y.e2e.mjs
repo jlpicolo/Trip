@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import { BASE, admin, cleanup, createTraveler, createTrip, launch, login, stepper } from "./helpers.mjs";
 
 const axeSource = readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
-const PAGES = ["/accueil", "/planning", "/carte", "/billets", "/hebergements", "/carnet", "/budget", "/plus", "/parametres", "/synchronisation"];
+const PAGES = ["/accueil", "/planning", "/carte", "/billets", "/hebergements", "/carnet", "/budget", "/plus", "/parametres", "/synchronisation", "/carte?parcours=2027-03-14"];
 
 const users = [];
 let trip;
@@ -23,6 +23,9 @@ try {
   const placeId = crypto.randomUUID();
   await admin.from("places").insert({ id: placeId, trip_id: trip.tripId, name: "Fushimi Inari", category: "monument", city: "Kyoto", lat: 34.9671, lng: 135.7727, is_favorite: true });
   await ins("activities", { title: "Fushimi Inari", date: "2027-03-14", start_time: "07:00", sort_key: 1024, category: "visit", place_id: placeId });
+  const kiyomizu = crypto.randomUUID();
+  await admin.from("places").insert({ id: kiyomizu, trip_id: trip.tripId, name: "Kiyomizu-dera", category: "monument", city: "Kyoto", lat: 34.9949, lng: 135.785 });
+  await ins("activities", { title: "Kiyomizu-dera", date: "2027-03-14", sort_key: 2048, category: "visit", place_id: kiyomizu });
   await ins("transports", { kind: "shinkansen", carrier: "JR", reference: "Nozomi 21", departure_date: "2027-03-20", departure_name: "Kyoto", arrival_name: "Tokyo" });
   await ins("accommodations", { name: "Hotel Gracery", city: "Kyoto", check_in_date: "2027-03-12", check_out_date: "2027-03-15" });
   await ins("journal_entries", { title: "Matcha à Uji", category: "food", priority: 1 });
@@ -48,13 +51,16 @@ try {
       await step(`${path} (${theme})`, async () => {
         await p.goto(`${BASE}${path}`);
         await p.getByRole("heading", { level: 1 }).first().waitFor({ timeout: 20_000 });
-        await p.waitForTimeout(path === "/carte" ? 3000 : 800);
+        await p.waitForTimeout(path.startsWith("/carte") ? 3000 : 800);
+        // Parcours : attendre les gares (ou le message d'indisponibilité) pour les auditer aussi.
+        if (path.includes("parcours")) await p.locator('[data-testid="transit"], [role="alert"]').first().waitFor({ timeout: 60_000 });
         report.push(...(await audit(p, `${path} (${theme})`)));
       });
     }
     const dialogs = [
       ["/planning", (pg) => pg.getByRole("button", { name: "Ouvrir « Fushimi Inari »" }).click()],
       ["/carte", (pg) => pg.getByRole("button", { name: /Ajouter/ }).last().click()],
+      ["/carte", (pg) => pg.getByRole("button", { name: "Importer un fichier" }).click()],
       ["/billets", (pg) => pg.getByRole("button", { name: "Document", exact: true }).click()],
       ["/hebergements", (pg) => pg.getByRole("button", { name: "Ouvrir « Hotel Gracery »" }).click()],
       ["/carnet", (pg) => pg.getByRole("button", { name: "Envie", exact: true }).click()],
@@ -77,7 +83,7 @@ try {
     for (const r of report) console.log(`- ${r.page} · ${r.id} (${r.impact}) : ${r.help}\n    ${r.nodes.join("\n    ")}`);
     process.exitCode = 1;
   } else {
-    console.log("\nAccessibilité : aucune violation WCAG 2.1 A/AA sur 34 écrans et fenêtres.");
+    console.log("\nAccessibilité : aucune violation WCAG 2.1 A/AA sur 38 écrans et fenêtres.");
   }
 } catch (e) {
   console.error("ÉCHEC", e);

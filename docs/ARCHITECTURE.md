@@ -1,7 +1,7 @@
 # Japan Trip — Architecture technique
 
 > Statut : **toutes les phases terminées (1 à 6)**. Document vivant, mis à jour à chaque phase.
-> Dernière mise à jour : 11 novembre 2026.
+> Dernière mise à jour : 11 novembre 2026 (import de lieux, parcours).
 
 ## 0. État du dépôt au démarrage
 
@@ -176,7 +176,8 @@ Aucun voyageur n'a de privilège supplémentaire.
 | Fond de carte (en ligne) | **OpenFreeMap** (tuiles vectorielles OpenStreetMap, styles `liberty` clair et `dark`) | non | gratuit, sans clé ni inscription, sans limite de consultation ; attribution OSM affichée |
 | Fond de carte (hors ligne) | **OpenFreeMap** mis en cache ville par ville par le service worker | non | aucun hébergement à gérer ; les serveurs `tile.openstreetmap.org` interdisent ce téléchargement, OpenFreeMap n'impose pas de limite |
 | Recherche de lieux | **Nominatim** (OSM) | non | gratuit, 1 req/s max, pas d'autocomplétion → recherche sur validation. Les adresses japonaises sont mal couvertes : saisie manuelle des coordonnées / collage d'un lien Google Maps en secours |
-| Itinéraires | **Liens externes** Google Maps / Apple Maps | non | pas d'API de calcul d'itinéraire : on n'invente pas de temps de trajet |
+| Itinéraires | **Liens externes** Google Maps / Apple Maps | non | pas d'API de calcul d'itinéraire : on n'invente pas de temps de trajet. Les résultats Google ne peuvent pas être affichés sur une carte non Google (conditions d'utilisation) |
+| Gares et lignes (mode Parcours) | **Overpass** (`overpass-api.de`, données OpenStreetMap) | non | gratuit, sans clé ; instance publique parfois saturée (nouvel essai, puis message et « Réessayer ») ; résultats gardés sur l'appareil |
 | Taux EUR/JPY | **Frankfurter** (`api.frankfurter.dev`, données BCE) | non | gratuit, sans clé. **Taux de référence quotidien** (jours ouvrés), affiché avec sa date : jamais présenté comme « temps réel ». Taux manuel possible |
 | Emails | **Aucun** (décision des voyageurs) | — | comptes et mots de passe transmis par l'organisateur ; un SMTP (Brevo, Resend…) pourra être ajouté plus tard |
 | Réservations (Booking, Airbnb…) | **Aucune intégration** | — | pas d'API officielle ouverte : liens externes + import PDF/captures |
@@ -659,7 +660,45 @@ pas été mesurées séparément.
    plus qu'après vérification dans la base locale.
 2. 313 fichiers de polices préchargés sur chaque page (voir « Polices ») ; test SQL qui supposait une base vide.
 
-## 19. Décisions prises (détails secondaires)
+## 19. Après la phase 6 — Import de lieux et Parcours (novembre 2026)
+
+| Élément | Fichiers | Vérification |
+|---|---|---|
+| Convertisseur : heure de la dernière vérification du taux BCE (publié une fois par jour ouvré) | `lib/fx.ts` (`checkedLabel`), `Converter.tsx` | tests unitaires |
+| Lecture CSV (séparateur détecté) et XLSX (fflate, sans dépendance lourde) | `lib/import/table.ts` | tests unitaires |
+| Préparation de l'import : colonnes reconnues par synonymes, catégories, ville déduite, contrôle « au Japon » (colonnes inversées corrigées), précision approximative signalée, doublons à 150 m | `lib/import/places.ts` | tests unitaires |
+| Import (lieux + entrées du carnet facultatives) via le moteur de synchro | `lib/db/import.ts`, `components/features/map/ImportPlaces.tsx` | E2E `import.e2e.mjs` |
+| Parcours par journée : ordre du planning, hôtel du matin → hôtel du soir, 10 couleurs de jour, trajets entre villes (Billets) | `lib/route-plan.ts`, `TripMap.tsx`, `RoutePanel.tsx`, `/carte?parcours=` | tests unitaires + E2E `route.e2e.mjs` |
+| Gares proches et lignes (code, nom, couleur officielle), trajet « sans changement » | `lib/transit.ts`, `components/features/map/useTransit.ts` | tests unitaires + E2E (vrai service, puis hors ligne) |
+
+### Décisions
+
+- **Import : aucune position devinée.** Une ligne sans coordonnées est importée « à placer » ; Nominatim a été
+  testé sur les adresses réelles du groupe : 0/19 trouvées par l'adresse, 10/19 par le nom (souvent le mauvais
+  quartier). Une précision « approximative » dans le fichier est reprise dans les notes du lieu.
+- **Parcours = lignes droites**, libellées « à vol d'oiseau » : aucun chemin ni durée inventés. Au-delà de 1,5 km,
+  « Transports conseillés » + lien Google Maps en transports pour le tronçon ; la journée entière s'ouvre à pied
+  (Google n'accepte pas d'étapes en mode transports). Le vrai tracé à pied (openrouteservice, clé gratuite) reste
+  possible plus tard, côté serveur.
+- **Gares et lignes depuis OpenStreetMap (Overpass)**, demandées une seule fois pour toutes les extrémités de
+  tronçons longs, puis **gardées dans IndexedDB** (`meta`, clé `transit:lat,lng` arrondie à ~100 m) : consultables
+  hors ligne. Les données des tuiles de la carte ont été écartées : les gares n'y figurent qu'à fort zoom.
+- **Lignes « officielles » uniquement** : une par code de ligne (C, JY, G…), sans les sens ni les variantes de
+  service. « Sans changement » signifie seulement qu'une même ligne dessert les deux gares (3 plus proches de
+  chaque côté, marche totale minimale) ; horaires, durée et correspondances restent dans Google Maps.
+- **Particularités des données OSM au Japon** : certaines compagnies (Keihan) n'ont qu'une relation d'infrastructure
+  (`route=railway`, sans code) rattachée au nœud de la gare et non aux points d'arrêt : elle n'est affichée qu'à
+  défaut de ligne codée. Les nœuds d'une même gare (un par compagnie) sont fusionnés par nom à moins de 500 m.
+- **Overpass** : instance publique souvent saturée (réponses d'erreur sans en-tête CORS) : trois essais espacés,
+  puis message et bouton « Réessayer » uniques en haut du parcours ; nouvel essai automatique au retour du réseau.
+
+### Bugs trouvés par les tests et corrigés
+
+1. **Carte : page en erreur en revenant du planning** (`?lieu=`) : la couche des tracés était ajoutée pendant le
+   chargement du style de la carte recréée. Rien n'est ajouté en mode Lieux, et en Parcours on attend que le style soit prêt.
+2. Trois boutons « Réessayer » identiques (un par tronçon) : un seul message pour tout le parcours.
+
+## 20. Décisions prises (détails secondaires)
 
 - Supabase Realtime non utilisé (consigne : pas de synchro permanente).
 - Dépenses individuelles : visibles par tous, **modifiables uniquement par leur propriétaire** (seule

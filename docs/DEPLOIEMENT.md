@@ -37,6 +37,7 @@ Aucune clé n'est nécessaire. Ce sont les seuls domaines autorisés par la poli
 - Tuiles de carte : `tiles.openfreemap.org` (en ligne et cartes hors ligne téléchargées ville par ville).
 - Recherche de lieux : `nominatim.openstreetmap.org` (1 requête/seconde).
 - Taux de change : `api.frankfurter.dev` (taux de référence BCE, une fois par jour au plus).
+- Gares et lignes (mode Parcours de la carte) : `overpass-api.de` (OpenStreetMap, résultats gardés sur l'appareil).
 
 ## Mises à jour de l'application
 

@@ -133,11 +133,11 @@ function Tickets() {
             ) : (
               <ul className="flex flex-col gap-3">
                 {view.transports.map((t) => (
-                  <div key={t.id} className="flex flex-col gap-1">
+                  <li key={t.id} className="flex flex-col gap-1">
                     {view.next?.id === t.id && <p className="text-xs font-semibold uppercase tracking-wider text-coral">Prochain trajet</p>}
                     <TransportCard transport={t} docs={docsOf(t.id)} travelers={travelers} past={t.departure_date < today}
                       onOpen={() => setDrawer({ kind: "transport", id: t.id })} onCode={setCode} />
-                  </div>
+                  </li>
                 ))}
               </ul>
             )}

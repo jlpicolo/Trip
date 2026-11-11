@@ -124,7 +124,8 @@ export default function DashboardPage() {
             <h2 id="escales" className="font-sans text-sm font-bold text-dim">Escales</h2>
             <Link href="/carte" className="text-sm font-semibold text-sakura">Voir la carte</Link>
           </div>
-          <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none]">
+          {/* Défilement horizontal atteignable au clavier (focus puis flèches). */}
+          <ul tabIndex={0} aria-label="Escales du voyage" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] focus-visible:outline-offset-[-2px]">
             {stops.map((s, i) => (
               <li key={s.id} className="w-[84px] shrink-0 rounded-2xl border-[1.5px] border-dashed border-line-strong bg-card px-1.5 py-2 text-center">
                 <p aria-hidden="true" className="font-display text-lg font-extrabold leading-tight" style={{ color: STAMP_COLORS[i % STAMP_COLORS.length] }}>
@@ -273,7 +274,7 @@ function PrepRow({ href, icon, label, value, total, detail }: {
   );
 }
 
-const STAMP_COLORS = ["var(--coral)", "var(--sun)", "var(--sakura)", "var(--teal)", "var(--night)", "#b39dff"];
+const STAMP_COLORS = ["var(--coral)", "var(--sun)", "var(--sakura)", "var(--teal)", "var(--night)"];
 
 function rangeLabel(from: string, to: string) {
   const f = formatDate(from, { day: "numeric", month: "short" });

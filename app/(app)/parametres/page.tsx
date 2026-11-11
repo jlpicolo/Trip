@@ -12,6 +12,7 @@ import { ProfileSection } from "@/components/features/settings/ProfileSection";
 import { AppearanceSection } from "@/components/features/settings/AppearanceSection";
 import { AccountSection } from "@/components/features/settings/AccountSection";
 import { OfflineSection } from "@/components/features/settings/OfflineSection";
+import { DataSection } from "@/components/features/settings/DataSection";
 import { useSession } from "@/hooks/useSession";
 import { getEngine } from "@/lib/sync/client";
 import type { TripInput } from "@/lib/validation/schemas";
@@ -54,6 +55,8 @@ export default function SettingsPage() {
         <>
           <SectionTitle>Hors ligne</SectionTitle>
           <OfflineSection trip={trip} userId={userId} />
+          <SectionTitle>Données et voyages</SectionTitle>
+          <DataSection trip={trip} userId={userId} />
         </>
       )}
       <SectionTitle>Synchronisation</SectionTitle>

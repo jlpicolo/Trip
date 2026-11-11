@@ -16,7 +16,7 @@ export function TransportCard({ transport: t, docs, travelers, past, onOpen, onC
   const who = t.traveler_ids.map((id) => travelers.find((x) => x.id === id)).filter((x): x is Traveler => !!x);
   const codes = docs.filter((d) => d.kind === "code");
   return (
-    <li className={`overflow-hidden rounded-2xl border border-line bg-card ${past ? "opacity-60" : ""}`}>
+    <div className={`overflow-hidden rounded-2xl border border-line bg-card ${past ? "opacity-60" : ""}`}>
       <button onClick={onOpen} aria-label={`Ouvrir le trajet « ${transportTitle(t)} »`} className="block w-full p-4 text-left hover:bg-elev">
         <div className="mb-3 flex items-center gap-2 text-sm">
           <span className="grid size-8 place-items-center rounded-lg bg-night-soft text-night"><Icon name={meta.icon} size={18} /></span>
@@ -63,6 +63,6 @@ export function TransportCard({ transport: t, docs, travelers, past, onOpen, onC
           ))}
         </div>
       )}
-    </li>
+    </div>
   );
 }

@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
-/* Thème : sombre par défaut, clair sur demande (data-theme) ou selon le système. */
 /* Palette « Nuit de Tokyo » : bleu nuit, corail, sakura, turquoise, soleil.
-   Thème sombre par défaut, clair sur demande (data-theme). */
+   Thème sombre par défaut, clair sur demande (data-theme).
+   Textes et accents vérifiés à 4,5:1 minimum (WCAG AA) sur tous les fonds, teintés compris (audit axe). */
 :root {
   --bg-base: #0b1020;
   --bg-card: #141b31;
@@ -11,9 +11,9 @@
   --border-strong: rgba(196, 210, 255, 0.2);
   --text: #f3f5ff;
   --text-dim: #a9b1cf;
-  --text-mute: #737ca3;
-  --coral: #ff6b6b;
-  --coral-soft: rgba(255, 107, 107, 0.16);
+  --text-mute: #8a93b8;
+  --coral: #ff7a7a;
+  --coral-soft: rgba(255, 122, 122, 0.16);
   --sakura: #ffb3c7;
   --sakura-soft: rgba(255, 179, 199, 0.14);
   --night: #8fa6ff;
@@ -41,20 +41,20 @@
   --border-strong: rgba(22, 26, 46, 0.18);
   --text: #161a2e;
   --text-dim: #555b78;
-  --text-mute: #858aa3;
-  --coral: #d6403f;
-  --coral-soft: rgba(214, 64, 63, 0.1);
-  --sakura: #b8436c;
-  --sakura-soft: rgba(184, 67, 108, 0.1);
+  --text-mute: #62677f;
+  --coral: #ad2c2b;
+  --coral-soft: rgba(173, 44, 43, 0.1);
+  --sakura: #9e385d;
+  --sakura-soft: rgba(158, 56, 93, 0.1);
   --night: #34479a;
   --night-soft: rgba(52, 71, 154, 0.08);
-  --teal: #0b7f6c;
-  --teal-soft: rgba(11, 127, 108, 0.1);
-  --sun: #9a6a00;
-  --sun-soft: rgba(154, 106, 0, 0.1);
-  --success: #0b7f6c;
+  --teal: #096a5b;
+  --teal-soft: rgba(9, 106, 91, 0.1);
+  --sun: #7f5700;
+  --sun-soft: rgba(127, 87, 0, 0.1);
+  --success: #096a5b;
   --error: #c0392b;
-  --warning: #9a6a00;
+  --warning: #7f5700;
   --on-accent: #ffffff;
   --route: linear-gradient(180deg, #d6403f 0%, #b8436c 50%, #0b7f6c 100%);
   --hero: radial-gradient(120% 90% at 100% 0%, #e9defc 0%, transparent 55%), radial-gradient(90% 80% at 0% 100%, #fbdbe4 0%, transparent 60%), #fffaf3;
